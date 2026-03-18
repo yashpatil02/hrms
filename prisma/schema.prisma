@@ -1,0 +1,203 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             Int      @id @default(autoincrement())
+  name           String
+  email          String   @unique
+  password       String
+  role           Role     @default(EMPLOYEE)
+  createdAt      DateTime @default(now())
+  weeklyOff      String?
+  weekoffBalance Int      @default(0)
+
+  attendances Attendance[]
+  leaves      Leave[]
+  documents   EmployeeDocument[]
+   notifications Notification[]
+
+  uploadedDocuments EmployeeDocument[] @relation("UploadedByAdmin")
+  attendanceAudits AttendanceAudit[] @relation("AdminAudit")
+  
+}
+
+model Attendance {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  date      DateTime
+  checkIn   String?
+  checkOut  String?
+  dayType   DayType
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([userId, date], name: "userId_date")
+}
+
+enum DayType {
+  FULL
+  HALF
+  ABSENT
+  WEEKOFF
+  WEEKOFF_PRESENT
+  PENDING_WEEKOFF
+  PAID_LEAVE
+  PAID_HOLIDAY
+}
+
+model Leave {
+  id           Int         @id @default(autoincrement())
+  userId       Int
+  reason       String
+  fromDate     DateTime
+  toDate       DateTime
+  status       LeaveStatus @default(PENDING)
+  rejectReason String?
+  createdAt    DateTime    @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+
+enum Role {
+  ADMIN
+  HR
+  EMPLOYEE
+}
+
+enum LeaveStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model Analyst {
+  id                Int       @id @default(autoincrement())
+  name              String
+  department        String
+  shift             Shift
+  isActive          Boolean   @default(true)
+  createdAt         DateTime  @default(now())
+  terminatedAt      DateTime?
+  terminationReason String?
+  terminatedById    Int?
+  terminatedByName  String?
+
+  shiftAttendances ShiftAttendance[]
+  attendanceAudits AttendanceAudit[]
+  shiftHistory     AnalystShiftHistory[]
+}
+
+enum Shift {
+  MORNING
+  AFTERNOON
+  GENERAL
+  EVENING
+  NIGHT
+}
+
+model ShiftAttendance {
+  id        Int              @id @default(autoincrement())
+  analystId Int
+  date      DateTime
+  shift     Shift
+  status    AttendanceStatus
+  createdAt DateTime         @default(now())
+
+  analyst Analyst @relation(fields: [analystId], references: [id])
+
+  @@unique([analystId, date])
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  HALF_DAY
+  PAID_LEAVE
+}
+
+model AttendanceAudit {
+  id        Int               @id @default(autoincrement())
+  adminId   Int
+  analystId Int
+  date      DateTime
+  shift     Shift
+  oldStatus AttendanceStatus?
+  newStatus AttendanceStatus
+  action    AuditAction
+  createdAt DateTime          @default(now())
+
+  admin   User    @relation("AdminAudit", fields: [adminId], references: [id])
+  analyst Analyst @relation(fields: [analystId], references: [id])
+}
+
+enum AuditAction {
+  CREATE
+  UPDATE
+}
+
+model AnalystShiftHistory {
+  id        Int      @id @default(autoincrement())
+  analystId Int
+  shift     String
+  month     Int
+  year      Int
+  createdAt DateTime @default(now())
+
+  analyst Analyst @relation(fields: [analystId], references: [id], onDelete: Cascade)
+
+  @@index([analystId, month, year])
+}
+
+model UserInvite {
+  id         String   @id @default(uuid())
+  email      String   @unique
+  name       String
+  role       Role     @default(EMPLOYEE)
+  department String?
+  token      String   @unique
+  expiresAt  DateTime
+  used       Boolean  @default(false)
+  createdAt  DateTime @default(now())
+}
+
+model EmployeeDocument {
+  id           String   @id @default(uuid())
+  employeeId   Int
+  uploadedBy   Int
+  documentType String
+  fileName     String
+  fileUrl      String
+  mimeType     String
+  fileSize     Int
+  createdAt    DateTime @default(now())
+
+  employee User @relation(fields: [employeeId], references: [id])
+  admin    User @relation("UploadedByAdmin", fields: [uploadedBy], references: [id])
+
+  @@index([employeeId])
+  @@index([uploadedBy])
+  @@index([createdAt])
+}
+
+
+model Notification {
+  id        Int      @id @default(autoincrement())
+  userId    Int?     // null = admin/global
+  title     String
+  message   String
+  type      String   // INFO | SUCCESS | ERROR
+  entityId  Int?
+  entity    String?
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id])
+}
