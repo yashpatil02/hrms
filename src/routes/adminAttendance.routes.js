@@ -1,20 +1,35 @@
 import express from "express";
-
 import auth from "../middlewares/auth.middleware.js";
 import role from "../middlewares/role.middleware.js";
-
 import {
   getAttendanceReport,
+  getUserAttendanceDetail,
+  getAttendanceOverview,
 } from "../controllers/adminAttendance.controller.js";
 
 const router = express.Router();
 
-// ADMIN – attendance report
+// GET overview stats (cards)
+router.get(
+  "/attendance-overview",
+  auth, role(["ADMIN","HR"]),
+  getAttendanceOverview
+);
+
+// GET all users list + this-month summary
+// ?search=&role=&department=&page=&limit=
 router.get(
   "/attendance-report",
-  auth,
-  role(["ADMIN"]),
+  auth, role(["ADMIN","HR"]),
   getAttendanceReport
+);
+
+// GET single user attendance detail
+// ?fromDate=&toDate=&dayType=&page=&limit=
+router.get(
+  "/attendance-report/:userId",
+  auth, role(["ADMIN","HR"]),
+  getUserAttendanceDetail
 );
 
 export default router;

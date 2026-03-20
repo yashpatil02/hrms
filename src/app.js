@@ -11,9 +11,10 @@ import analystRoutes from "./routes/analyst.routes.js";
 import employeeRoutes from "./routes/employee.routes.js";
 import adminShiftAttendanceRoutes from "./routes/adminShiftAttendance.routes.js";
 import adminAttendanceRoutes from "./routes/adminAttendance.routes.js";
+import settingsRoutes from "./routes/settings.routes.js";
 import notificationRoutes from "./routes/notification.routes.js";
 import documentRoutes from "./routes/document.routes.js";
-
+import weeklyoffRoutes from "./routes/weeklyoff.routes.js";
 
 const app = express();
 
@@ -25,13 +26,25 @@ const app = express();
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true }));
 
-// ✅ CORS (GOOGLE OAUTH SAFE)
+// ✅ CORS — localhost + production domain dono allow
+const allowedOrigins = [
+  "http://localhost:3000",
+  "http://127.0.0.1:3000",
+  process.env.FRONTEND_URL, // ✅ FIX #4 — production URL env se aayega
+].filter(Boolean); // undefined/null entries hata do
+
 app.use(
   cors({
-    origin: [
-      "http://localhost:3000",
-      "http://127.0.0.1:3000",
-    ],
+    origin: (origin, callback) => {
+      // Allow requests with no origin (mobile apps, Postman, curl)
+      if (!origin) return callback(null, true);
+
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      } else {
+        return callback(new Error(`CORS blocked: ${origin}`));
+      }
+    },
     methods: ["GET", "POST", "PUT", "DELETE"],
     allowedHeaders: [
       "Content-Type",
@@ -81,8 +94,14 @@ app.use("/api/admin", adminShiftAttendanceRoutes);
 app.use("/api/admin", adminAttendanceRoutes);
 app.use("/api/notifications", notificationRoutes);
 
-// doccument upload
+// document upload
 app.use("/api/documents", documentRoutes);
+
+// setting routes 
+app.use("/api/settings", settingsRoutes);
+
+// weeklyoff 
+app.use("/api/weekoff", weeklyoffRoutes);
 
 /* ================================
    FALLBACKS

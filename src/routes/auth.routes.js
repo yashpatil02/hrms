@@ -5,6 +5,9 @@ import {
   completeInvite,
   inviteUser,
   googleInviteSignup,
+  getPendingInvites,
+  resendInvite,
+  cancelInvite,
 } from "../controllers/auth.controller.js";
 
 import authMiddleware from "../middlewares/auth.middleware.js";
@@ -16,20 +19,22 @@ const router = express.Router();
 router.post("/login", login);
 
 // VERIFY TOKEN
-router.get("/me", authMiddleware, (req, res) => {
-  res.json({ user: req.user });
-});
+router.get("/me", authMiddleware, (req, res) => res.json({ user: req.user }));
 
 // ADMIN → INVITE USER
-router.post(
-  "/invite-user",
-  authMiddleware,
-  role(["ADMIN"]),
-  inviteUser
-);
+router.post("/invite-user",   authMiddleware, role(["ADMIN"]), inviteUser);
 
-// INVITE FLOW
-router.get("/invite/:token", validateInvite);
+// ADMIN → PENDING INVITES LIST
+router.get("/invites",        authMiddleware, role(["ADMIN"]), getPendingInvites);
+
+// ADMIN → RESEND INVITE
+router.post("/invites/:id/resend", authMiddleware, role(["ADMIN"]), resendInvite);
+
+// ADMIN → CANCEL INVITE
+router.delete("/invites/:id", authMiddleware, role(["ADMIN"]), cancelInvite);
+
+// INVITE FLOW (public)
+router.get("/invite/:token",  validateInvite);
 router.post("/complete-invite", completeInvite);
 router.post("/google-invite", googleInviteSignup);
 

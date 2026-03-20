@@ -1,46 +1,64 @@
 import express from "express";
-
 import auth from "../middlewares/auth.middleware.js";
 import role from "../middlewares/role.middleware.js";
-
 import {
   saveShiftAttendance,
   getShiftAttendanceByDateAndShift,
   getMonthlyShiftAttendance,
   getAttendanceAudit,
+  getDailySummary,
 } from "../controllers/adminShiftAttendance.controller.js";
 
 const router = express.Router();
 
-// SAVE attendance (SHIFT + DATE)
+/* ================================
+   ATTENDANCE ENTRY
+================================ */
+
+// POST — save/update attendance records
 router.post(
   "/attendance-by-shift",
-  auth,
-  role(["ADMIN"]),
+  auth, role(["ADMIN"]),
   saveShiftAttendance
 );
 
-// DAILY attendance
+// GET — daily attendance for a shift+date
+// ?date=YYYY-MM-DD&shift=MORNING&department=SQ
 router.get(
   "/shift-attendance-report",
-  auth,
-  role(["ADMIN"]),
+  auth, role(["ADMIN", "HR"]),
   getShiftAttendanceByDateAndShift
 );
 
-// MONTHLY attendance
+// GET — daily summary across ALL shifts
+// ?date=YYYY-MM-DD
+router.get(
+  "/daily-summary",
+  auth, role(["ADMIN", "HR"]),
+  getDailySummary
+);
+
+/* ================================
+   REPORTS
+================================ */
+
+// GET — monthly attendance matrix
+// ?month=&year=&department=&shift=
 router.get(
   "/monthly-shift-attendance",
-  auth,
-  role(["ADMIN"]),
+  auth, role(["ADMIN", "HR"]),
   getMonthlyShiftAttendance
 );
 
-// AUDIT
+/* ================================
+   AUDIT LOGS
+================================ */
+
+// GET — paginated audit trail
+// ?page=&limit=&action=&shift=&fromDate=&toDate=&search=
 router.get(
   "/attendance-audit",
-  auth,
-  role(["ADMIN"]),
+  auth, role(["ADMIN", "HR"]),
   getAttendanceAudit
 );
 

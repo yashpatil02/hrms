@@ -17,14 +17,20 @@ model User {
   weeklyOff      String?
   weekoffBalance Int      @default(0)
 
+  // ── NEW PROFILE FIELDS ──
+  phone          String?
+  department     String?
+  designation    String?
+  joinDate       DateTime?
+  avatar         String?   // URL or base64 (optional)
+
   attendances Attendance[]
   leaves      Leave[]
   documents   EmployeeDocument[]
-   notifications Notification[]
+  notifications Notification[]
 
   uploadedDocuments EmployeeDocument[] @relation("UploadedByAdmin")
-  attendanceAudits AttendanceAudit[] @relation("AdminAudit")
-  
+  attendanceAudits  AttendanceAudit[]  @relation("AdminAudit")
 }
 
 model Attendance {
@@ -64,7 +70,6 @@ model Leave {
 
   user User @relation(fields: [userId], references: [id])
 }
-
 
 enum Role {
   ADMIN
@@ -187,17 +192,24 @@ model EmployeeDocument {
   @@index([createdAt])
 }
 
-
 model Notification {
   id        Int      @id @default(autoincrement())
-  userId    Int?     // null = admin/global
+  userId    Int?
   title     String
   message   String
-  type      String   // INFO | SUCCESS | ERROR
+  type      String
   entityId  Int?
   entity    String?
   isRead    Boolean  @default(false)
   createdAt DateTime @default(now())
 
   user User? @relation(fields: [userId], references: [id])
+}
+
+// ── NEW: System-wide key-value settings ──
+model SystemSettings {
+  id        Int      @id @default(autoincrement())
+  key       String   @unique
+  value     String
+  updatedAt DateTime @updatedAt
 }
