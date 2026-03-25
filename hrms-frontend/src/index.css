@@ -1,0 +1,68 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow: auto;
+ 
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+}
+
+/* ===============================
+   CUSTOM SIDEBAR SCROLLBAR
+=============================== */
+
+.sidebar-scroll {
+
+  scrollbar-width: thin;
+  scrollbar-color: #3b82f6 #111827;
+
+}
+
+/* Chrome, Edge, Safari */
+
+.sidebar-scroll::-webkit-scrollbar {
+
+  width: 6px;
+
+}
+
+.sidebar-scroll::-webkit-scrollbar-track {
+
+  background: #111827;
+
+}
+
+.sidebar-scroll::-webkit-scrollbar-thumb {
+
+  background: #3b82f6;
+  border-radius: 10px;
+
+}
+
+.sidebar-scroll::-webkit-scrollbar-thumb:hover {
+
+  background: #2563eb;
+
+}
+
+
+/* Smooth scrolling */
+
+.sidebar-scroll {
+
+  scroll-behavior: smooth;
+
+}
