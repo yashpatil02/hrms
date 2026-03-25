@@ -2,10 +2,12 @@ import axios from "axios";
 
 /* =========================
    BASE URL
+   CRA uses REACT_APP_ prefix
+   VITE_ prefix kaam nahi karta CRA mein
 ========================= */
 const BASE_URL =
-  import.meta.env.VITE_API_URL || // production (Vercel)
-  "http://localhost:5000/api"; // local fallback
+  process.env.REACT_APP_API_URL ||  // ✅ .env se aayega
+  "http://localhost:5000/api";       // local fallback
 
 /* =========================
    AXIOS INSTANCE
@@ -21,11 +23,9 @@ const api = axios.create({
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem("token");
-
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
-
     return config;
   },
   (error) => Promise.reject(error)
@@ -38,19 +38,12 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     const status = error?.response?.status;
-
     if (status === 401) {
       const user = localStorage.getItem("user");
-
       if (!user) {
         return Promise.reject();
       }
-
-      // OPTIONAL AUTO LOGOUT
-      // localStorage.clear();
-      // window.location.href = "/login";
     }
-
     return Promise.reject(error);
   }
 );
