@@ -14,7 +14,7 @@ const server = http.createServer(app);
 ========================= */
 const allowedOrigins = [
   "http://localhost:3000",
-  process.env.FRONTEND_URL, // Vercel URL
+  process.env.FRONTEND_URL,
 ];
 
 /* =========================
@@ -23,7 +23,6 @@ const allowedOrigins = [
 export const io = new Server(server, {
   cors: {
     origin: (origin, callback) => {
-      // allow requests with no origin (mobile apps, curl, etc.)
       if (!origin) return callback(null, true);
 
       if (allowedOrigins.includes(origin)) {
@@ -43,36 +42,51 @@ export const io = new Server(server, {
 io.on("connection", (socket) => {
   console.log("🔌 Socket connected:", socket.id);
 
-  /* =========================
-     JOIN ROOMS
-  ========================= */
   socket.on("join", ({ userId, role }) => {
     if (!userId) return;
 
-    // 👤 User room
     socket.join(`user_${userId}`);
     console.log(`👤 Joined user_${userId}`);
 
-    // 👑 Admin room
     if (role === "ADMIN" || role === "HR") {
       socket.join("admins");
       console.log("👑 Joined admins room");
     }
   });
 
-  /* =========================
-     DEBUG
-  ========================= */
   socket.on("ping", () => {
     socket.emit("pong");
   });
 
-  /* =========================
-     DISCONNECT
-  ========================= */
   socket.on("disconnect", (reason) => {
     console.log("❌ Socket disconnected:", socket.id, reason);
   });
+});
+
+/* =========================
+   TEMP ADMIN CREATE ROUTE
+========================= */
+app.get("/create-admin", async (req, res) => {
+  try {
+    const bcrypt = (await import("bcrypt")).default;
+    const prisma = (await import("./src/prisma/client.js")).default;
+
+    const hash = await bcrypt.hash("Admin@1912", 10);
+
+    const user = await prisma.user.create({
+      data: {
+        name: "Super Admin",
+        email: "admin@hrms.com",
+        password: hash,
+        role: "ADMIN",
+      },
+    });
+
+    res.json({ msg: "Admin created", user });
+  } catch (err) {
+    console.error("CREATE ADMIN ERROR:", err);
+    res.status(500).json({ msg: "Error creating admin" });
+  }
 });
 
 /* =========================
