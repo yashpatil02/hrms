@@ -1,5 +1,6 @@
 import express from "express";
 import bcrypt from "bcrypt";
+import prisma from "../../prisma/client.js";
 import {
   login,
   validateInvite,
