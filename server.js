@@ -63,31 +63,6 @@ io.on("connection", (socket) => {
   });
 });
 
-/* =========================
-   TEMP ADMIN CREATE ROUTE
-========================= */
-app.get("/create-admin", async (req, res) => {
-  try {
-    const bcrypt = (await import("bcrypt")).default;
-    const prisma = (await import("./src/prisma/client.js")).default;
-
-    const hash = await bcrypt.hash("Admin@1912", 10);
-
-    const user = await prisma.user.create({
-      data: {
-        name: "Super Admin",
-        email: "admin@hrms.com",
-        password: hash,
-        role: "ADMIN",
-      },
-    });
-
-    res.json({ msg: "Admin created", user });
-  } catch (err) {
-    console.error("CREATE ADMIN ERROR:", err);
-    res.status(500).json({ msg: "Error creating admin" });
-  }
-});
 
 /* =========================
    START SERVER
