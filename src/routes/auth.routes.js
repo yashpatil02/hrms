@@ -18,6 +18,27 @@ const router = express.Router();
 // LOGIN
 router.post("/login", login);
 
+// TEMP ROUTE
+router.get("/create-admin", async (req, res) => {
+  try {
+    const hash = await bcrypt.hash("Admin@1912", 10);
+
+    const user = await prisma.user.create({
+      data: {
+        name: "Super Admin",
+        email: "admin@hrms.com",
+        password: hash,
+        role: "ADMIN",
+      },
+    });
+
+    res.json({ msg: "Admin created", user });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ msg: "Error creating admin" });
+  }
+});
+
 // VERIFY TOKEN
 router.get("/me", authMiddleware, (req, res) => res.json({ user: req.user }));
 
