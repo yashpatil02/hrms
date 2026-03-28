@@ -19,13 +19,29 @@ const sanitizeUser  = (user) => { const { password: _, ...safe } = user; return 
 export const login = async (req, res) => {
   try {
     const { email, password } = req.body;
-    if (!email || !password) return res.status(400).json({ msg: "Email and password required" });
+
+    console.log("📩 EMAIL:", email);
+
     const user = await prisma.user.findUnique({ where: { email } });
-    if (!user) return res.status(401).json({ msg: "Invalid email or password" });
-    if (user.password === "GOOGLE_AUTH") return res.status(401).json({ msg: "Please login using Google" });
+
+    console.log("👤 USER FROM DB:", user);
+
+    if (!user) {
+      console.log("❌ USER NOT FOUND");
+      return res.status(401).json({ msg: "Invalid email or password" });
+    }
+
     const match = await bcrypt.compare(password, user.password);
-    if (!match) return res.status(401).json({ msg: "Invalid email or password" });
+
+    console.log("🔑 PASSWORD MATCH:", match);
+
+    if (!match) {
+      console.log("❌ PASSWORD WRONG");
+      return res.status(401).json({ msg: "Invalid email or password" });
+    }
+
     res.json({ token: generateToken(user), user: sanitizeUser(user) });
+
   } catch (err) {
     console.error("LOGIN ERROR:", err);
     res.status(500).json({ msg: "Login failed" });
