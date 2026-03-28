@@ -10,11 +10,28 @@ const PORT = process.env.PORT || 5000;
 const server = http.createServer(app);
 
 /* =========================
+   ALLOWED ORIGINS
+========================= */
+const allowedOrigins = [
+  "http://localhost:3000",
+  process.env.FRONTEND_URL, // Vercel URL
+];
+
+/* =========================
    SOCKET.IO SETUP
 ========================= */
 export const io = new Server(server, {
   cors: {
-    origin: process.env.CLIENT_URL || "http://localhost:3000",
+    origin: (origin, callback) => {
+      // allow requests with no origin (mobile apps, curl, etc.)
+      if (!origin) return callback(null, true);
+
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      } else {
+        return callback(new Error("CORS not allowed"));
+      }
+    },
     methods: ["GET", "POST", "PUT"],
     credentials: true,
   },
@@ -32,19 +49,19 @@ io.on("connection", (socket) => {
   socket.on("join", ({ userId, role }) => {
     if (!userId) return;
 
-    // 👤 User personal room
+    // 👤 User room
     socket.join(`user_${userId}`);
-    console.log(`👤 User joined room user_${userId}`);
+    console.log(`👤 Joined user_${userId}`);
 
-    // 👑 Admin / HR room
+    // 👑 Admin room
     if (role === "ADMIN" || role === "HR") {
       socket.join("admins");
-      console.log("👑 Admin joined admins room");
+      console.log("👑 Joined admins room");
     }
   });
 
   /* =========================
-     DEBUG (OPTIONAL)
+     DEBUG
   ========================= */
   socket.on("ping", () => {
     socket.emit("pong");
