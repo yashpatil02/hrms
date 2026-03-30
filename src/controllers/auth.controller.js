@@ -230,3 +230,19 @@ export const resendInvite = async (req, res) => {
     res.status(500).json({ msg: "Failed to resend invite" });
   }
 };
+
+export const cancelInvite = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    await prisma.userInvite.delete({
+      where: { id }
+    });
+
+    res.json({ msg: "Invite cancelled successfully" });
+
+  } catch (err) {
+    console.error("CANCEL INVITE ERROR:", err);
+    res.status(500).json({ msg: "Failed to cancel invite" });
+  }
+};
