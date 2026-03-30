@@ -3,20 +3,20 @@ import nodemailer from "nodemailer";
 const createTransporter = () =>
   nodemailer.createTransport({
     host: "smtp.gmail.com",
-    port: 587,
-    secure: false,
+    port: 465,
+    secure: true, // 🔥 important (SSL)
     auth: {
       user: process.env.EMAIL_USER,
       pass: process.env.EMAIL_PASS,
     },
-    connectionTimeout: 10000,
+    connectionTimeout: 20000,
+    greetingTimeout: 10000,
     socketTimeout: 20000,
   });
-
 /* ================================
    SEND INVITE EMAIL
 ================================ */
-export const sendInviteEmail = async (to, name, link) => {
+export const sendInviteEmail = async (to, name, link  ) => {
   const transporter = createTransporter();
 
   await transporter.sendMail({
