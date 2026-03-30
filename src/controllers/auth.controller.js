@@ -174,11 +174,15 @@ export const resendInvite = async (req, res) => {
       },
     });
 
-    await sendInviteEmail(
-      invite.email,
-      invite.name,
-      `${process.env.FRONTEND_URL}/invite/${token}`
-    );
+   try {
+  await sendInviteEmail(
+    invite.email,
+    invite.name,
+    `${process.env.FRONTEND_URL}/invite/${token}`
+  );
+} catch (e) {
+  console.error("EMAIL FAILED:", e);
+}
 
     res.json({ msg: "Invite resent successfully" });
 
