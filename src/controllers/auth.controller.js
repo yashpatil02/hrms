@@ -112,7 +112,7 @@ export const inviteUser = async (req, res) => {
       data: { name, email, role, department, token, expiresAt: new Date(Date.now() + 24*60*60*1000) },
     });
 
-    // await sendInviteEmail(email, name, `${process.env.FRONTEND_URL}/invite/${token}`);
+    await sendInviteEmail(email, name, `${process.env.FRONTEND_URL}/invite/${token}`);
     res.json({ msg: "Invite sent successfully" });
   } catch (err) {
     console.error("INVITE ERROR:", err);
