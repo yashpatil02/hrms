@@ -152,19 +152,36 @@ export const getPendingInvites = async (req, res) => {
 export const resendInvite = async (req, res) => {
   try {
     const { id } = req.params;
-    const invite  = await prisma.userInvite.findUnique({ where: { id } });
-    if (!invite)       return res.status(404).json({ msg: "Invite not found" });
-    if (invite.used)   return res.status(400).json({ msg: "Invite already used" });
 
-    // generate new token + extend expiry
-    const token = crypto.randomBytes(32).toString("hex");
-    await prisma.userInvite.update({
-      where: { id },
-      data: { token, expiresAt: new Date(Date.now() + 24*60*60*1000) },
+    console.log("RESEND ID:", id);
+
+    const invite = await prisma.userInvite.findFirst({
+      where: { id: id.trim() }
     });
 
-    await sendInviteEmail(invite.email, invite.name, `${process.env.FRONTEND_URL}/invite/${token}`);
+    console.log("INVITE FOUND:", invite);
+
+    if (!invite) return res.status(404).json({ msg: "Invite not found" });
+    if (invite.used) return res.status(400).json({ msg: "Invite already used" });
+
+    const token = crypto.randomBytes(32).toString("hex");
+
+    await prisma.userInvite.update({
+      where: { id: invite.id },
+      data: {
+        token,
+        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+      },
+    });
+
+    await sendInviteEmail(
+      invite.email,
+      invite.name,
+      `${process.env.FRONTEND_URL}/invite/${token}`
+    );
+
     res.json({ msg: "Invite resent successfully" });
+
   } catch (err) {
     console.error("RESEND INVITE ERROR:", err);
     res.status(500).json({ msg: "Failed to resend invite" });
