@@ -25,6 +25,7 @@
     "nodemailer": "^7.0.13",
     "prisma": "^6.19.1",
     "recharts": "^2.12.2",
+    "resend": "^6.10.0",
     "socket.io": "^4.8.3",
     "socket.io-client": "^4.8.3",
     "uuid": "^13.0.0"
