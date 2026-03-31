@@ -111,7 +111,8 @@ export const inviteUser = async (req, res) => {
     await prisma.userInvite.create({
       data: { name, email, role, department, token, expiresAt: new Date(Date.now() + 24*60*60*1000) },
     });
-
+    console.log("📨 LINK:", `${process.env.FRONTEND_URL}/invite/${token}`);
+console.log("📨 Sending invite to:", email);
     await sendInviteEmail(email, name, `${process.env.FRONTEND_URL}/invite/${token}`);
     res.json({ msg: "Invite sent successfully" });
   } catch (err) {
