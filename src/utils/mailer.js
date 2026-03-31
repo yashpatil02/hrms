@@ -5,7 +5,7 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 export const sendInviteEmail = async (to, name, link) => {
   try {
     await resend.emails.send({
-      from: "HRMS <onboarding@resend.dev>", // testing sender
+      from: "HRMS <noreply@hrmsco.com>", // ✅ custom domain sender
       to,
       subject: "You're invited to join HRMS",
       html: `
