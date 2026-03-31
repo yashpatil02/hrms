@@ -14,9 +14,10 @@ const server = http.createServer(app);
 ========================= */
 const allowedOrigins = [
   "http://localhost:3000",
-  process.env.FRONTEND_URL,
+  "http://127.0.0.1:3000",
+  "https://hrmsco.com",
+  "https://www.hrmsco.com",
 ];
-
 /* =========================
    SOCKET.IO SETUP
 ========================= */
@@ -31,7 +32,8 @@ export const io = new Server(server, {
         return callback(new Error("CORS not allowed"));
       }
     },
-    methods: ["GET", "POST", "PUT"],
+    // methods: ["GET", "POST", "PUT"],
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     credentials: true,
   },
 });
