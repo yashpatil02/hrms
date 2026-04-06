@@ -191,11 +191,19 @@ const EmployeeDashboard = () => {
 
   useEffect(()=>{ loadDashboard(); },[loadDashboard]);
 
-  /* socket refresh */
+  /* socket refresh — debounced to avoid cascade reloads */
   useEffect(()=>{
+    let debounceTimer = null;
+    const debouncedLoad = () => {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => loadDashboard(), 5000);
+    };
     const evs = ["attendance:marked","leave:approved","leave:rejected","notification:new"];
-    evs.forEach(e=>socket.on(e, loadDashboard));
-    return ()=>evs.forEach(e=>socket.off(e, loadDashboard));
+    evs.forEach(e=>socket.on(e, debouncedLoad));
+    return ()=>{
+      clearTimeout(debounceTimer);
+      evs.forEach(e=>socket.off(e, debouncedLoad));
+    };
   },[loadDashboard]);
 
   /* ── loading ── */

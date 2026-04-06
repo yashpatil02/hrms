@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo, useCallback } from "react";
+import { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import Layout from "../components/Layout";
 import api from "../api/axios";
 import {
@@ -343,10 +343,11 @@ const AdminAttendance = () => {
   }, []);
 
   /* load users list */
-  const loadUsers = useCallback(async () => {
+  const loadUsers = useCallback(async (overridePage) => {
     setLoading(true);
     try {
-      const params = new URLSearchParams({ page, limit: LIMIT });
+      const activePage = overridePage ?? page;
+      const params = new URLSearchParams({ page: activePage, limit: LIMIT });
       if (search.trim())        params.append("search",     search.trim());
       if (roleFilter !== "ALL") params.append("role",       roleFilter);
       if (deptFilter !== "ALL") params.append("department", deptFilter);
@@ -364,10 +365,20 @@ const AdminAttendance = () => {
     }
   }, [page, search, roleFilter, deptFilter]);
 
+  /* initial load and page changes */
   useEffect(() => { loadUsers(); }, [loadUsers]);
 
-  /* reset to page 1 when filters change */
-  useEffect(() => { setPage(1); }, [search, roleFilter, deptFilter]);
+  /* reset to page 1 when filters change — call loadUsers directly with page=1
+     to avoid double API call (setPage + loadUsers effect) */
+  const prevFilters = useRef({ search: "", roleFilter: "ALL", deptFilter: "ALL" });
+  useEffect(() => {
+    const prev = prevFilters.current;
+    if (prev.search !== search || prev.roleFilter !== roleFilter || prev.deptFilter !== deptFilter) {
+      prevFilters.current = { search, roleFilter, deptFilter };
+      setPage(1);
+      loadUsers(1);
+    }
+  }, [search, roleFilter, deptFilter]); // eslint-disable-line
 
   const hasFilters = search || roleFilter !== "ALL" || deptFilter !== "ALL";
 

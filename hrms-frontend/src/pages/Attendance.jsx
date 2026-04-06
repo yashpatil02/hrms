@@ -297,7 +297,7 @@ const Attendance = () => {
     finally { setHistLoading(false); }
   }, [fromDate, toDate, monthFilter, typeFilter]);
 
-  useEffect(()=>{ loadToday(); loadStats(); loadHistory(); },[]);
+  useEffect(()=>{ loadToday(); loadStats(); },[]);
   useEffect(()=>{ loadHistory(); },[loadHistory]);
 
   /* prefill manual form when date changes */
@@ -323,9 +323,7 @@ const Attendance = () => {
       setClockLoading("in");
       const res = await api.post("/attendance/clock-in");
       showToast("success", res.data.msg);
-      await loadToday();
-      await loadHistory();
-      await loadStats();
+      await Promise.all([loadToday(), loadHistory(), loadStats()]);
     } catch(err){
       showToast("error", err.response?.data?.msg||"Clock-in failed");
     } finally { setClockLoading(null); }
@@ -339,9 +337,7 @@ const Attendance = () => {
       setClockLoading("out");
       const res = await api.post("/attendance/clock-out");
       showToast("success", `${res.data.msg}${res.data.hours?` · ${res.data.hours}h worked`:""}`);
-      await loadToday();
-      await loadHistory();
-      await loadStats();
+      await Promise.all([loadToday(), loadHistory(), loadStats()]);
     } catch(err){
       showToast("error", err.response?.data?.msg||"Clock-out failed");
     } finally { setClockLoading(null); }
@@ -364,9 +360,7 @@ const Attendance = () => {
       }
       showToast("success", manualEditMode?"Attendance updated!":"Attendance marked!");
       setShowManualForm(false);
-      await loadToday();
-      await loadHistory();
-      await loadStats();
+      await Promise.all([loadToday(), loadHistory(), loadStats()]);
     } catch(err){
       showToast("error", err.response?.data?.msg||"Save failed");
     } finally { setManualLoading(false); }
