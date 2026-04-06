@@ -22,13 +22,12 @@ const FULL_MENU = [
   },
   {
     id: "employee",
-    section: "EMPLOYEE",
-    roles: ["EMPLOYEE"],
+    section: "MY ATTENDANCE",
+    roles: ["ADMIN", "HR", "EMPLOYEE"],
     items: [
       { name: "Attendance", path: "/attendance", icon: <FaUserCheck /> },
       { name: "Leaves", path: "/leaves", icon: <FaCalendarAlt /> },
-      { name:"Weekly Off",  path:"/weekly-off",  icon:<FaCalendarCheck/> },
-
+      { name: "Weekly Off", path: "/weekly-off", icon: <FaCalendarCheck /> },
     ],
   },
   {
