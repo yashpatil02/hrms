@@ -123,8 +123,9 @@ async function calculatePayrollForEmployee(userId, month, year, structureMap) {
   const structure = structureMap[userId];
   if (!structure) return null;
 
-  const firstDay = new Date(Date.UTC(year, month - 1, 1, 6, 30, 0));
-  const lastDay  = new Date(Date.UTC(year, month, 0, 6, 30, 0));
+  // ✅ Fix: use full day range — attendance stored at noon UTC (12:00), so end must be 23:59:59
+  const firstDay = new Date(Date.UTC(year, month - 1, 1,  0,  0,  0));
+  const lastDay  = new Date(Date.UTC(year, month,     0, 23, 59, 59));
 
   const attendances = await prisma.attendance.findMany({
     where: { userId, date: { gte: firstDay, lte: lastDay } },
@@ -146,9 +147,12 @@ async function calculatePayrollForEmployee(userId, month, year, structureMap) {
   }
 
   const totalWorkingDays = attendances.length;
-  const paidDays    = presentDays + leaveDays + paidHolidays;
+  const paidDays     = presentDays + leaveDays + paidHolidays;
   const workableDays = totalWorkingDays - weekoffDays;
-  const ratio = workableDays > 0 ? paidDays / workableDays : 0;
+
+  // ✅ Fix: if NO attendance data for month → pay full salary (ratio = 1)
+  // If attendance exists but all weekoff → also full salary
+  const ratio = workableDays > 0 ? paidDays / workableDays : 1;
 
   const basicSalary     = round2(structure.basicSalary * ratio);
   const hra             = round2(structure.hra * ratio);

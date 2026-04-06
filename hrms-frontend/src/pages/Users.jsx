@@ -434,10 +434,10 @@ const Users = () => {
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-x-auto">
 
         {/* TABLE HEADER */}
-        <div className="grid grid-cols-12 gap-4 px-5 py-3 border-b border-gray-100 text-xs font-semibold text-gray-400 uppercase tracking-wider min-w-[620px]">
+        <div className="hidden sm:grid grid-cols-12 gap-4 px-5 py-3 border-b border-gray-100 text-xs font-semibold text-gray-400 uppercase tracking-wider">
           <div className="col-span-4">User</div>
           <div className="col-span-2">Role</div>
-          <div className="col-span-2 hidden sm:block">Department</div>
+          <div className="col-span-2">Department</div>
           <div className="col-span-2 hidden md:block">This Month</div>
           <div className="col-span-2 text-right">Actions</div>
         </div>
@@ -459,58 +459,100 @@ const Users = () => {
         ) : (
           <div className="divide-y divide-gray-50">
             {filtered.map(user => (
-              <div key={user.id}
-                className="grid grid-cols-12 gap-4 px-5 py-4 items-center hover:bg-gray-50/80 transition-colors group">
+              <div key={user.id}>
 
-                {/* USER INFO */}
-                <div className="col-span-4 flex items-center gap-3 min-w-0">
-                  <Avatar name={user.name} size="md"/>
-                  <div className="min-w-0">
-                    <p className="text-sm font-semibold text-gray-800 truncate">{user.name}</p>
-                    <p className="text-xs text-gray-400 truncate">{user.email}</p>
-                  </div>
-                </div>
-
-                {/* ROLE */}
-                <div className="col-span-2">
-                  <RoleBadge role={user.role}/>
-                </div>
-
-                {/* DEPARTMENT */}
-                <div className="col-span-2 hidden sm:block">
-                  <span className="text-sm text-gray-600">{user.department || <span className="text-gray-300">—</span>}</span>
-                </div>
-
-                {/* THIS MONTH PRESENT */}
-                <div className="col-span-2 hidden md:flex items-center gap-1.5">
-                  <div className="flex items-center gap-1 bg-green-50 text-green-700 rounded-lg px-2 py-1">
-                    <FaCalendarCheck size={10}/>
-                    <span className="text-xs font-semibold">{user.presentDaysThisMonth}d</span>
-                  </div>
-                  {user.pendingLeaves > 0 && (
-                    <div className="flex items-center gap-1 bg-amber-50 text-amber-700 rounded-lg px-2 py-1">
-                      <FaLeaf size={10}/>
-                      <span className="text-xs font-semibold">{user.pendingLeaves}</span>
+                {/* MOBILE CARD */}
+                <div className="sm:hidden px-4 py-4">
+                  <div className="flex items-start gap-3">
+                    <Avatar name={user.name} size="md"/>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold text-gray-800 truncate">{user.name}</p>
+                          <p className="text-xs text-gray-400 truncate">{user.email}</p>
+                        </div>
+                        <RoleBadge role={user.role}/>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2 mt-2">
+                        {user.department && <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">{user.department}</span>}
+                        <div className="flex items-center gap-1 bg-green-50 text-green-700 rounded-lg px-2 py-0.5 text-xs font-semibold">
+                          <FaCalendarCheck size={9}/> {user.presentDaysThisMonth}d
+                        </div>
+                        {user.pendingLeaves > 0 && (
+                          <div className="flex items-center gap-1 bg-amber-50 text-amber-700 rounded-lg px-2 py-0.5 text-xs font-semibold">
+                            <FaLeaf size={9}/> {user.pendingLeaves} pending
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  )}
-                </div>
-
-                {/* ACTIONS */}
-                <div className="col-span-2 flex items-center justify-end gap-1.5">
-                  <button onClick={() => setSelectedUser(user)}
-                    className="w-8 h-8 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-600 flex items-center justify-center transition-colors"
-                    title="View Details">
-                    <FaEye size={13}/>
-                  </button>
-                  {currentUser.role === "ADMIN" && user.role !== "ADMIN" && (
-                    <button onClick={() => handleDelete(user.id, user.name)}
-                      className="w-8 h-8 rounded-xl bg-red-50 hover:bg-red-100 text-red-500 flex items-center justify-center transition-colors opacity-0 group-hover:opacity-100"
-                      title="Delete User">
-                      <FaTrashAlt size={12}/>
+                  </div>
+                  <div className="flex items-center gap-2 mt-3">
+                    <button onClick={() => setSelectedUser(user)}
+                      className="flex items-center gap-1.5 text-xs bg-blue-50 hover:bg-blue-100 text-blue-600 px-3 py-1.5 rounded-xl font-medium">
+                      <FaEye size={11}/> View
                     </button>
-                  )}
+                    {currentUser.role === "ADMIN" && user.role !== "ADMIN" && (
+                      <button onClick={() => handleDelete(user.id, user.name)}
+                        className="flex items-center gap-1.5 text-xs bg-red-50 hover:bg-red-100 text-red-500 px-3 py-1.5 rounded-xl font-medium">
+                        <FaTrashAlt size={10}/> Delete
+                      </button>
+                    )}
+                  </div>
                 </div>
 
+                {/* DESKTOP ROW */}
+                <div className="hidden sm:grid grid-cols-12 gap-4 px-5 py-4 items-center hover:bg-gray-50/80 transition-colors group">
+
+                  {/* USER INFO */}
+                  <div className="col-span-4 flex items-center gap-3 min-w-0">
+                    <Avatar name={user.name} size="md"/>
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-gray-800 truncate">{user.name}</p>
+                      <p className="text-xs text-gray-400 truncate">{user.email}</p>
+                    </div>
+                  </div>
+
+                  {/* ROLE */}
+                  <div className="col-span-2">
+                    <RoleBadge role={user.role}/>
+                  </div>
+
+                  {/* DEPARTMENT */}
+                  <div className="col-span-2">
+                    <span className="text-sm text-gray-600">{user.department || <span className="text-gray-300">—</span>}</span>
+                  </div>
+
+                  {/* THIS MONTH PRESENT */}
+                  <div className="col-span-2 hidden md:flex items-center gap-1.5">
+                    <div className="flex items-center gap-1 bg-green-50 text-green-700 rounded-lg px-2 py-1">
+                      <FaCalendarCheck size={10}/>
+                      <span className="text-xs font-semibold">{user.presentDaysThisMonth}d</span>
+                    </div>
+                    {user.pendingLeaves > 0 && (
+                      <div className="flex items-center gap-1 bg-amber-50 text-amber-700 rounded-lg px-2 py-1">
+                        <FaLeaf size={10}/>
+                        <span className="text-xs font-semibold">{user.pendingLeaves}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* ACTIONS */}
+                  <div className="col-span-2 flex items-center justify-end gap-1.5">
+                    <button onClick={() => setSelectedUser(user)}
+                      className="w-8 h-8 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-600 flex items-center justify-center transition-colors"
+                      title="View Details">
+                      <FaEye size={13}/>
+                    </button>
+                    {currentUser.role === "ADMIN" && user.role !== "ADMIN" && (
+                      <button onClick={() => handleDelete(user.id, user.name)}
+                        className="w-8 h-8 rounded-xl bg-red-50 hover:bg-red-100 text-red-500 flex items-center justify-center transition-colors opacity-0 group-hover:opacity-100"
+                        title="Delete User">
+                        <FaTrashAlt size={12}/>
+                      </button>
+                    )}
+                  </div>
+
+                </div>
               </div>
             ))}
           </div>

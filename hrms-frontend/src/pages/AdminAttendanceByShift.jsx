@@ -550,7 +550,7 @@ export default function AdminAttendanceByShift() {
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-x-auto">
 
           {/* HEADER ROW */}
-          <div className="grid grid-cols-12 gap-4 px-5 py-3 border-b border-gray-100 text-xs font-semibold text-gray-400 uppercase tracking-wider min-w-[620px]">
+          <div className="hidden sm:grid grid-cols-12 gap-4 px-5 py-3 border-b border-gray-100 text-xs font-semibold text-gray-400 uppercase tracking-wider">
             <div className="col-span-1 flex items-center">
               <input type="checkbox"
                 checked={selected.length===filtered.length&&filtered.length>0}
@@ -558,7 +558,7 @@ export default function AdminAttendanceByShift() {
                 className="w-3.5 h-3.5 accent-blue-600 cursor-pointer"/>
             </div>
             <div className="col-span-4">Analyst</div>
-            <div className="col-span-2 hidden sm:block">Dept</div>
+            <div className="col-span-2">Dept</div>
             <div className="col-span-3">Status</div>
             <div className="col-span-2 text-right">Action</div>
           </div>
@@ -571,62 +571,110 @@ export default function AdminAttendanceByShift() {
               const isNew     = !locked[a.analystId] && !!status;
 
               return (
-                <div key={a.analystId}
-                  className={`grid grid-cols-12 gap-4 px-5 py-4 items-center transition-colors ${
-                    isEditing ? "bg-amber-50/40" : isNew ? "bg-green-50/30" : "hover:bg-gray-50/80"
-                  }`}>
+                <div key={a.analystId}>
 
-                  <div className="col-span-1">
-                    <input type="checkbox" checked={selected.includes(a.analystId)} onChange={()=>toggleSelect(a.analystId)}
-                      className="w-3.5 h-3.5 accent-blue-600 cursor-pointer"/>
-                  </div>
-
-                  <div className="col-span-4 flex items-center gap-3">
-                    <Avatar name={a.name}/>
-                    <div>
-                      <p className="text-sm font-semibold text-gray-800">{a.name}</p>
-                      <p className="text-xs text-gray-400">#{a.analystId}</p>
+                  {/* MOBILE CARD */}
+                  <div className={`sm:hidden px-4 py-4 ${isEditing ? "bg-amber-50/40" : isNew ? "bg-green-50/30" : ""}`}>
+                    <div className="flex items-start gap-3 mb-3">
+                      <input type="checkbox" checked={selected.includes(a.analystId)} onChange={()=>toggleSelect(a.analystId)}
+                        className="w-3.5 h-3.5 accent-blue-600 cursor-pointer mt-1"/>
+                      <Avatar name={a.name}/>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between gap-2">
+                          <div>
+                            <p className="text-sm font-semibold text-gray-800">{a.name}</p>
+                            <p className="text-xs text-gray-400">#{a.analystId} · {a.department}</p>
+                          </div>
+                          <div className="flex items-center gap-1.5 flex-shrink-0">
+                            {isNew && <span className="text-[10px] bg-green-100 text-green-700 px-2 py-1 rounded-full font-semibold">New</span>}
+                            {locked[a.analystId] && (
+                              <button onClick={()=>toggleEdit(a.analystId)}
+                                className={`flex items-center gap-1 text-xs px-2.5 py-1 rounded-xl font-medium ${isEditing ? "bg-amber-100 text-amber-700" : "bg-blue-50 text-blue-600"}`}>
+                                {isEditing ? <><FaLock size={8}/>Lock</> : <><FaUnlock size={8}/>Edit</>}
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="pl-7">
+                      {isLocked ? (
+                        <StatusBadge status={status}/>
+                      ) : (
+                        <div className="flex gap-1.5 flex-wrap">
+                          {STATUSES.map(s=>{
+                            const sc = STATUS_CONFIG[s];
+                            return (
+                              <button key={s} onClick={()=>setStatus(a.analystId,s)} title={sc.label}
+                                className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-semibold border-2 transition-all ${
+                                  status===s ? `${sc.bg} ${sc.text} border-current` : "border-gray-200 text-gray-500 bg-white"
+                                }`}>
+                                {sc.icon} {sc.short}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
                     </div>
                   </div>
 
-                  <div className="col-span-2 hidden sm:block">
-                    <span className="text-xs bg-gray-100 text-gray-600 px-2.5 py-1 rounded-full font-medium">{a.department}</span>
-                  </div>
+                  {/* DESKTOP ROW */}
+                  <div className={`hidden sm:grid grid-cols-12 gap-4 px-5 py-4 items-center transition-colors ${
+                    isEditing ? "bg-amber-50/40" : isNew ? "bg-green-50/30" : "hover:bg-gray-50/80"
+                  }`}>
 
-                  <div className="col-span-3">
-                    {isLocked ? (
-                      <StatusBadge status={status}/>
-                    ) : (
-                      <div className="flex gap-1.5 flex-wrap">
-                        {STATUSES.map(s=>{
-                          const sc = STATUS_CONFIG[s];
-                          return (
-                            <button key={s} onClick={()=>setStatus(a.analystId,s)} title={sc.label}
-                              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-semibold border-2 transition-all ${
-                                status===s
-                                  ? `${sc.bg} ${sc.text} border-current`
-                                  : "border-gray-200 text-gray-500 hover:border-gray-300 bg-white"
-                              }`}>
-                              {sc.icon} {sc.short}
-                            </button>
-                          );
-                        })}
+                    <div className="col-span-1">
+                      <input type="checkbox" checked={selected.includes(a.analystId)} onChange={()=>toggleSelect(a.analystId)}
+                        className="w-3.5 h-3.5 accent-blue-600 cursor-pointer"/>
+                    </div>
+
+                    <div className="col-span-4 flex items-center gap-3">
+                      <Avatar name={a.name}/>
+                      <div>
+                        <p className="text-sm font-semibold text-gray-800">{a.name}</p>
+                        <p className="text-xs text-gray-400">#{a.analystId}</p>
                       </div>
-                    )}
-                  </div>
+                    </div>
 
-                  <div className="col-span-2 flex items-center justify-end gap-1.5">
-                    {isNew && <span className="text-[10px] bg-green-100 text-green-700 px-2 py-1 rounded-full font-semibold">New</span>}
-                    {locked[a.analystId] && (
-                      <button onClick={()=>toggleEdit(a.analystId)}
-                        className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-xl font-medium transition-colors ${
-                          isEditing
-                            ? "bg-amber-100 text-amber-700 hover:bg-amber-200"
-                            : "bg-blue-50 text-blue-600 hover:bg-blue-100"
-                        }`}>
-                        {isEditing ? <><FaLock size={9}/>Lock</> : <><FaUnlock size={9}/>Edit</>}
-                      </button>
-                    )}
+                    <div className="col-span-2">
+                      <span className="text-xs bg-gray-100 text-gray-600 px-2.5 py-1 rounded-full font-medium">{a.department}</span>
+                    </div>
+
+                    <div className="col-span-3">
+                      {isLocked ? (
+                        <StatusBadge status={status}/>
+                      ) : (
+                        <div className="flex gap-1.5 flex-wrap">
+                          {STATUSES.map(s=>{
+                            const sc = STATUS_CONFIG[s];
+                            return (
+                              <button key={s} onClick={()=>setStatus(a.analystId,s)} title={sc.label}
+                                className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-semibold border-2 transition-all ${
+                                  status===s
+                                    ? `${sc.bg} ${sc.text} border-current`
+                                    : "border-gray-200 text-gray-500 hover:border-gray-300 bg-white"
+                                }`}>
+                                {sc.icon} {sc.short}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="col-span-2 flex items-center justify-end gap-1.5">
+                      {isNew && <span className="text-[10px] bg-green-100 text-green-700 px-2 py-1 rounded-full font-semibold">New</span>}
+                      {locked[a.analystId] && (
+                        <button onClick={()=>toggleEdit(a.analystId)}
+                          className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-xl font-medium transition-colors ${
+                            isEditing
+                              ? "bg-amber-100 text-amber-700 hover:bg-amber-200"
+                              : "bg-blue-50 text-blue-600 hover:bg-blue-100"
+                          }`}>
+                          {isEditing ? <><FaLock size={9}/>Lock</> : <><FaUnlock size={9}/>Edit</>}
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
               );

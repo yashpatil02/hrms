@@ -448,9 +448,9 @@ const AdminAttendance = () => {
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-x-auto">
 
         {/* TABLE HEADER */}
-        <div className="grid grid-cols-12 gap-4 px-5 py-3 border-b border-gray-100 text-xs font-semibold text-gray-400 uppercase tracking-wider min-w-[620px]">
+        <div className="hidden sm:grid grid-cols-12 gap-4 px-5 py-3 border-b border-gray-100 text-xs font-semibold text-gray-400 uppercase tracking-wider">
           <div className="col-span-4">Employee</div>
-          <div className="col-span-2 hidden sm:block">Role / Dept</div>
+          <div className="col-span-2">Role / Dept</div>
           <div className="col-span-2 hidden md:block text-center">Full</div>
           <div className="col-span-1 hidden md:block text-center">Half</div>
           <div className="col-span-1 hidden md:block text-center">Absent</div>
