@@ -39,9 +39,11 @@ api.interceptors.response.use(
   (error) => {
     const status = error?.response?.status;
     if (status === 401) {
-      const user = localStorage.getItem("user");
-      if (!user) {
-        return Promise.reject();
+      // Token expired or invalid — clear session and redirect to login
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      if (window.location.pathname !== "/login") {
+        window.location.href = "/login";
       }
     }
     return Promise.reject(error);
