@@ -6,6 +6,7 @@ import {
   FaChartBar, FaCog,
 } from "react-icons/fa";
 import { useNotifications } from "../context/NotificationContext";
+import { useUser } from "../context/UserContext";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 
 /* ============================================================
@@ -58,6 +59,7 @@ const N_DOT = {
 ============================================================ */
 const Navbar = ({ onMobileMenuToggle }) => {
   const { alerts = [], unreadCount = 0, markAsRead, markAllRead } = useNotifications();
+  const { user = {}, clearUser } = useUser();
 
   const [notifOpen, setNotifOpen] = useState(false);
   const [userOpen,  setUserOpen]  = useState(false);
@@ -66,8 +68,6 @@ const Navbar = ({ onMobileMenuToggle }) => {
   const location  = useLocation();
   const notifRef  = useRef(null);
   const userRef   = useRef(null);
-
-  const user     = JSON.parse(localStorage.getItem("user") || "{}");
   /* ✅ FIX: ensure pageTitle is always a plain string */
   const rawTitle = PAGE_MAP[location.pathname];
   const pageTitle = typeof rawTitle === "string" ? rawTitle : "HRMS";
@@ -97,11 +97,25 @@ const Navbar = ({ onMobileMenuToggle }) => {
 
   /* ── logout ── */
   const handleLogout = () => {
+    clearUser();
     localStorage.clear();
     import("../socket")
       .then(({ default: socket }) => socket.disconnect())
       .catch(() => {});
     window.location.href = "/login";
+  };
+
+  /* ── avatar helper ── */
+  const AvatarIcon = ({ size = "sm" }) => {
+    const cls = size === "sm" ? "w-7 h-7 text-xs" : "w-8 h-8 text-sm";
+    if (user?.avatar) {
+      return <img src={user.avatar} alt={user.name} className={`${cls} rounded-lg object-cover flex-shrink-0`} />;
+    }
+    return (
+      <div className={`${cls} rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold flex-shrink-0`}>
+        {user?.name?.charAt(0)?.toUpperCase() || "U"}
+      </div>
+    );
   };
 
   const roleLabel = { ADMIN:"Admin", HR:"HR", EMPLOYEE:"Employee" }[user?.role] || user?.role;
@@ -244,9 +258,7 @@ const Navbar = ({ onMobileMenuToggle }) => {
             }`}
           >
             {/* avatar */}
-            <div className="w-7 h-7 rounded-lg bg-blue-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
-              {user?.name?.charAt(0)?.toUpperCase() || "U"}
-            </div>
+            <AvatarIcon size="sm" />
             {/* name + role — hidden on very small screens */}
             <div className="hidden sm:block text-left">
               <p className="text-xs font-semibold text-gray-800 leading-none max-w-[100px] truncate">{user?.name}</p>
@@ -268,9 +280,7 @@ const Navbar = ({ onMobileMenuToggle }) => {
               {/* USER INFO */}
               <div className="px-4 py-3 border-b border-gray-100 bg-gray-50">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
-                    {user?.name?.charAt(0)?.toUpperCase() || "U"}
-                  </div>
+                  <AvatarIcon size="md" />
                   <div className="min-w-0">
                     <p className="text-sm font-semibold text-gray-800 truncate">{user?.name}</p>
                     <p className="text-[10px] text-gray-400 truncate">{user?.email}</p>

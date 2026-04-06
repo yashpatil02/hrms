@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import Layout from "../components/Layout";
 import api from "../api/axios";
+import { useUser } from "../context/UserContext";
 import {
   FaUser, FaEnvelope, FaPhone, FaBriefcase, FaBuilding,
   FaCalendarAlt, FaEdit, FaSave, FaTimes, FaLock,
@@ -39,6 +40,7 @@ const InfoRow = ({ icon, label, value }) => (
 );
 
 export default function EmployeeProfile() {
+  const { updateUser } = useUser();
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [editMode, setEditMode] = useState(false);
@@ -72,6 +74,8 @@ export default function EmployeeProfile() {
       const { data } = await api.get("/profile/me");
       setProfile(data);
       setForm({ name: data.name, phone: data.phone || "", designation: data.designation || "", avatar: data.avatar || "" });
+      // ✅ Sync latest avatar from DB into context so Navbar reflects it immediately
+      updateUser({ name: data.name, avatar: data.avatar || "" });
     } catch {}
     setLoading(false);
   };
@@ -87,9 +91,8 @@ export default function EmployeeProfile() {
     try {
       const { data } = await api.put("/profile/me", form);
       setProfile((p) => ({ ...p, ...data.user }));
-      // ✅ Only sync name to localStorage — never store base64 avatar (bloats storage)
-      const stored = JSON.parse(localStorage.getItem("user") || "{}");
-      localStorage.setItem("user", JSON.stringify({ ...stored, name: data.user.name }));
+      // ✅ Sync name + avatar to UserContext (updates Navbar + localStorage)
+      updateUser({ name: data.user.name, avatar: data.user.avatar || "" });
       setEditMode(false);
       showToast("Profile updated successfully!");
     } catch (err) {
