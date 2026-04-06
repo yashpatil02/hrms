@@ -1,5 +1,10 @@
 import prisma from "../../prisma/client.js";
 import { createNotification } from "../utils/createNotification.js";
+import {
+  sendLeaveAppliedEmail,
+  sendLeaveApprovedEmail,
+  sendLeaveRejectedEmail,
+} from "../utils/mailer.js";
 
 /* ============================================================
    HELPER
@@ -76,6 +81,19 @@ export const applyLeave = async (req, res) => {
       entity:      "LEAVE",
       entityId:    leave.id,
       socketEvent: "notification:new",
+    });
+
+    /* ✅ Email: notify all Admin + HR about new leave request */
+    const adminsHR = await prisma.user.findMany({
+      where:  { role: { in: ["ADMIN", "HR"] } },
+      select: { email: true },
+    });
+    const adminEmails = adminsHR.map((u) => u.email).filter(Boolean);
+    sendLeaveAppliedEmail(adminEmails, { name: user.name, department: user.department }, {
+      fromDate: fmtDate(from),
+      toDate:   fmtDate(to),
+      days,
+      reason:   reason.trim(),
     });
 
     res.json({ msg: "Leave applied successfully", leave: { ...leave, days } });
@@ -251,7 +269,7 @@ export const approveLeave = async (req, res) => {
     const leave = await prisma.leave.update({
       where: { id: parseInt(req.params.id) },
       data:  { status: "APPROVED" },
-      include: { user: { select: { id:true, name:true } } },
+      include: { user: { select: { id:true, name:true, email:true } } },
     });
 
     const days = diffDays(leave.fromDate, leave.toDate);
@@ -264,6 +282,14 @@ export const approveLeave = async (req, res) => {
       entity:      "LEAVE",
       entityId:    leave.id,
       socketEvent: "leave:approved",
+    });
+
+    /* ✅ Email employee */
+    sendLeaveApprovedEmail(leave.user.email, { name: leave.user.name }, {
+      fromDate: fmtDate(leave.fromDate),
+      toDate:   fmtDate(leave.toDate),
+      days,
+      reason:   leave.reason,
     });
 
     res.json({ msg: "Leave approved" });
@@ -283,8 +309,10 @@ export const rejectLeave = async (req, res) => {
     const leave = await prisma.leave.update({
       where: { id: parseInt(req.params.id) },
       data:  { status: "REJECTED", rejectReason },
-      include: { user: { select: { id:true, name:true } } },
+      include: { user: { select: { id:true, name:true, email:true } } },
     });
+
+    const days = diffDays(leave.fromDate, leave.toDate);
 
     await createNotification({
       userId:  leave.user.id,
@@ -295,6 +323,13 @@ export const rejectLeave = async (req, res) => {
       entityId:    leave.id,
       socketEvent: "leave:rejected",
     });
+
+    /* ✅ Email employee */
+    sendLeaveRejectedEmail(leave.user.email, { name: leave.user.name }, {
+      fromDate: fmtDate(leave.fromDate),
+      toDate:   fmtDate(leave.toDate),
+      days,
+    }, rejectReason);
 
     res.json({ msg: "Leave rejected" });
   } catch (err) {

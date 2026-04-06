@@ -1,4 +1,10 @@
 import { PrismaClient } from "@prisma/client";
+import {
+  sendSalaryStructureEmail,
+  sendPayrollGeneratedEmail,
+  sendPayrollStatusEmail,
+} from "../utils/mailer.js";
+
 const prisma = new PrismaClient();
 
 // ─────────────────────────────────────────────
@@ -68,12 +74,17 @@ export const upsertSalaryStructure = async (req, res) => {
       otherDeductions: Math.max(parseFloat(otherDeductions) || 0, 0),
     };
 
+    const isNew = !(await prisma.salaryStructure.findUnique({ where: { userId } }));
+
     const structure = await prisma.salaryStructure.upsert({
       where:  { userId },
       update: data,
       create: { userId, ...data },
-      include: { user: { select: { id: true, name: true, designation: true, department: true } } },
+      include: { user: { select: { id: true, name: true, email: true, designation: true, department: true } } },
     });
+
+    /* ✅ Email employee about their salary structure */
+    sendSalaryStructureEmail(structure.user.email, { name: structure.user.name }, data, isNew);
 
     res.json({ message: "Salary structure saved", structure });
   } catch (err) {
@@ -221,8 +232,26 @@ export const generatePayroll = async (req, res) => {
       )
     );
 
+    // ✅ Fetch employee emails and send payslip notifications
+    const empIds = payrollData.map(({ emp }) => emp.id);
+    const empEmails = await prisma.user.findMany({
+      where:  { id: { in: empIds } },
+      select: { id: true, name: true, email: true },
+    });
+    const emailMap = Object.fromEntries(empEmails.map((u) => [u.id, u]));
+
     created.forEach((p, i) => {
-      results.push({ userId: payrollData[i].emp.id, name: payrollData[i].emp.name, payrollId: p.id, netSalary: p.netSalary });
+      const emp = payrollData[i].emp;
+      results.push({ userId: emp.id, name: emp.name, payrollId: p.id, netSalary: p.netSalary });
+      const empUser = emailMap[emp.id];
+      if (empUser?.email) {
+        sendPayrollGeneratedEmail(empUser.email, { name: empUser.name }, {
+          month: parseInt(month), year: parseInt(year),
+          totalWorkingDays: p.totalWorkingDays, presentDays: p.presentDays,
+          grossSalary: p.grossSalary, totalDeductions: p.totalDeductions,
+          netSalary: p.netSalary, status: p.status,
+        });
+      }
     });
 
     res.json({ message: "Payroll generated", month, year, results });
@@ -297,11 +326,21 @@ export const updatePayrollStatus = async (req, res) => {
       where: { id: parseInt(req.params.id) },
       data: {
         status,
-        remarks:     remarks || null,
+        remarks:      remarks || null,
         approvedById: status === "APPROVED" ? req.user.id : undefined,
         approvedAt:   status === "APPROVED" ? new Date()  : undefined,
       },
+      include: { user: { select: { id: true, name: true, email: true } } },
     });
+
+    /* ✅ Email employee when payroll is approved or paid */
+    if ((status === "APPROVED" || status === "PAID") && payroll.user?.email) {
+      sendPayrollStatusEmail(payroll.user.email, { name: payroll.user.name }, {
+        month: payroll.month, year: payroll.year,
+        grossSalary: payroll.grossSalary, totalDeductions: payroll.totalDeductions,
+        netSalary: payroll.netSalary,
+      }, status);
+    }
 
     res.json({ message: `Payroll marked as ${status}`, payroll });
   } catch (err) {
