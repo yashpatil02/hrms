@@ -105,27 +105,48 @@ export const getDashboardStats = async (req, res) => {
 
     /* ================================
        LEAVE TREND — LAST 6 MONTHS
+       Single bulk query instead of 6 separate queries
     ================================ */
+    const trendStart = new Date(now.getFullYear(), now.getMonth()-5, 1);
+    const trendEnd   = new Date(now.getFullYear(), now.getMonth()+1, 0, 23,59,59,999);
+    const allTrendLeaves = await prisma.leave.findMany({
+      where: { createdAt: { gte: trendStart, lte: trendEnd } },
+      select: { createdAt: true },
+    });
+
     const leaveTrendData = [];
     for (let i = 5; i >= 0; i--) {
       const start = new Date(now.getFullYear(), now.getMonth()-i, 1);
-      const end   = new Date(now.getFullYear(), now.getMonth()-i+1, 0, 23,59,59);
-      const count = await prisma.leave.count({ where: { createdAt: { gte: start, lte: end } } });
+      const end   = new Date(now.getFullYear(), now.getMonth()-i+1, 0, 23,59,59,999);
+      const count = allTrendLeaves.filter(l => l.createdAt >= start && l.createdAt <= end).length;
       leaveTrendData.push({ month: start.toLocaleString("en-IN",{ month:"short" }), count });
     }
 
     /* ================================
        COMBINED ATTENDANCE TREND — 7 DAYS
+       2 bulk queries instead of 14 separate queries
     ================================ */
+    const sevenDaysStart = new Date(now); sevenDaysStart.setDate(now.getDate()-6); sevenDaysStart.setHours(0,0,0,0);
+    const sevenDaysEnd   = new Date(now); sevenDaysEnd.setHours(23,59,59,999);
+
+    const [allEmpTrend, allAnaTrend] = await Promise.all([
+      prisma.attendance.findMany({
+        where: { date: { gte: sevenDaysStart, lte: sevenDaysEnd } },
+        select: { dayType: true, date: true },
+      }),
+      prisma.shiftAttendance.findMany({
+        where: { date: { gte: sevenDaysStart, lte: sevenDaysEnd } },
+        select: { status: true, date: true },
+      }),
+    ]);
+
     const combinedTrend = [];
     for (let i = 6; i >= 0; i--) {
       const dStart = new Date(now); dStart.setDate(now.getDate()-i); dStart.setHours(0,0,0,0);
       const dEnd   = new Date(dStart); dEnd.setHours(23,59,59,999);
 
-      const [empRecs, anaRecs] = await Promise.all([
-        prisma.attendance.findMany({ where: { date: { gte: dStart, lte: dEnd } }, select: { dayType: true } }),
-        prisma.shiftAttendance.findMany({ where: { date: { gte: dStart, lte: dEnd } }, select: { status: true } }),
-      ]);
+      const empRecs = allEmpTrend.filter(a => a.date >= dStart && a.date <= dEnd);
+      const anaRecs = allAnaTrend.filter(a => a.date >= dStart && a.date <= dEnd);
 
       const empPresent = empRecs.filter(a => ["FULL","HALF","WEEKOFF_PRESENT"].includes(a.dayType)).length;
       const anaPresent = anaRecs.filter(a => a.status === "PRESENT").length;
@@ -139,24 +160,22 @@ export const getDashboardStats = async (req, res) => {
 
     /* ================================
        ATTENDANCE HEATMAP — THIS MONTH
-       (last 30 days, day-level rate)
+       1 bulk query instead of 30 separate queries
     ================================ */
-    const heatmapData = [];
     const daysInMonth = new Date(now.getFullYear(), now.getMonth()+1, 0).getDate();
     const todayDate   = now.getDate();
 
+    /* reuse monthAttendance (already fetched above) but we need date field — fetch with date */
+    const heatmapRecs = await prisma.attendance.findMany({
+      where: { date: { gte: monthStart, lte: monthEnd } },
+      select: { dayType: true, date: true },
+    });
+
+    const heatmapData = [];
     for (let d = 1; d <= Math.min(todayDate, daysInMonth); d++) {
-      const dStart = new Date(now.getFullYear(), now.getMonth(), d, 0,0,0);
-      const dEnd   = new Date(now.getFullYear(), now.getMonth(), d, 23,59,59);
-
-      const recs   = await prisma.attendance.findMany({
-        where: { date: { gte: dStart, lte: dEnd } },
-        select: { dayType: true },
-      });
-
+      const recs    = heatmapRecs.filter(a => new Date(a.date).getDate() === d);
       const present = recs.filter(a => ["FULL","HALF","WEEKOFF_PRESENT"].includes(a.dayType)).length;
       const rate    = totalEmployees === 0 ? 0 : Math.round((present / totalEmployees) * 100);
-
       heatmapData.push({ day: d, rate, present, total: totalEmployees });
     }
 

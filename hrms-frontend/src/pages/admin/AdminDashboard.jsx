@@ -234,9 +234,17 @@ const AdminDashboard = () => {
   useEffect(()=>{ loadStats(); },[]);
 
   useEffect(()=>{
+    let debounceTimer = null;
+    const debouncedLoad = () => {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => loadStats(), 5000);
+    };
     const events = ["leave:new","leave:approved","leave:rejected","attendance:marked"];
-    events.forEach(e => socket.on(e, ()=>loadStats()));
-    return ()=> events.forEach(e => socket.off(e));
+    events.forEach(e => socket.on(e, debouncedLoad));
+    return ()=> {
+      clearTimeout(debounceTimer);
+      events.forEach(e => socket.off(e, debouncedLoad));
+    };
   },[]);
 
   const greeting = () => {

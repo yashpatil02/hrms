@@ -348,19 +348,26 @@ export const getDailySummary = async (req, res) => {
     });
     overall.unmarked = totalAnalysts - records.length;
 
-    /* per-shift breakdown */
+    /* per-shift breakdown — single groupBy instead of 5 COUNT queries */
+    const shiftCountsResult = await prisma.analyst.groupBy({
+      by: ["shift"],
+      where: { isActive: true },
+      _count: { shift: true },
+    });
+
+    const shiftAnalystCounts = {};
+    shiftCountsResult.forEach(s => { shiftAnalystCounts[s.shift] = s._count.shift; });
+
     const shifts = ["MORNING","AFTERNOON","GENERAL","EVENING","NIGHT"];
     const byShift = {};
 
     for (const s of shifts) {
-      const shiftAnalysts = await prisma.analyst.count({
-        where: { shift: s, isActive: true },
-      });
+      const shiftAnalystsCount = shiftAnalystCounts[s] || 0;
       const shiftRecords = records.filter(r => r.shift === s);
       byShift[s] = {
-        total:     shiftAnalysts,
+        total:     shiftAnalystsCount,
         marked:    shiftRecords.length,
-        unmarked:  shiftAnalysts - shiftRecords.length,
+        unmarked:  shiftAnalystsCount - shiftRecords.length,
         present:   shiftRecords.filter(r => r.status === "PRESENT").length,
         absent:    shiftRecords.filter(r => r.status === "ABSENT").length,
         halfDay:   shiftRecords.filter(r => r.status === "HALF_DAY").length,

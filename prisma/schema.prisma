@@ -45,6 +45,8 @@ model Attendance {
   user User @relation(fields: [userId], references: [id])
 
   @@unique([userId, date], name: "userId_date")
+  @@index([date])
+  @@index([dayType])
 }
 
 enum DayType {
@@ -69,6 +71,11 @@ model Leave {
   createdAt    DateTime    @default(now())
 
   user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+  @@index([userId, status])
 }
 
 enum Role {
@@ -98,6 +105,10 @@ model Analyst {
   shiftAttendances ShiftAttendance[]
   attendanceAudits AttendanceAudit[]
   shiftHistory     AnalystShiftHistory[]
+
+  @@index([shift])
+  @@index([isActive])
+  @@index([shift, isActive])
 }
 
 enum Shift {
@@ -119,6 +130,9 @@ model ShiftAttendance {
   analyst Analyst @relation(fields: [analystId], references: [id])
 
   @@unique([analystId, date])
+  @@index([date])
+  @@index([shift])
+  @@index([date, shift])
 }
 
 enum AttendanceStatus {
@@ -204,6 +218,10 @@ model Notification {
   createdAt DateTime @default(now())
 
   user User? @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([isRead])
+  @@index([createdAt])
 }
 
 // ── NEW: System-wide key-value settings ──
