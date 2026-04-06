@@ -140,7 +140,9 @@ export default function HolidayManagement() {
     try {
       const { data } = await api.get(`/holidays?year=${y}`);
       setHolidays(data);
-    } catch {}
+    } catch (err) {
+      console.error("Load holidays error:", err);
+    }
     setLoading(false);
   };
 
@@ -164,8 +166,8 @@ export default function HolidayManagement() {
       setHolidays((p) => p.filter((h) => h.id !== id));
       setDeleteConfirm(null);
       showToast("Holiday deleted");
-    } catch {
-      showToast("Delete failed", "error");
+    } catch (err) {
+      showToast(err.response?.data?.message || "Delete failed", "error");
     }
   };
 
@@ -175,8 +177,8 @@ export default function HolidayManagement() {
       const { data } = await api.post("/holidays/bulk", { holidays: PRESET_HOLIDAYS(year) });
       showToast(`${data.count} holidays imported!`);
       load(year);
-    } catch {
-      showToast("Import failed", "error");
+    } catch (err) {
+      showToast(err.response?.data?.message || "Import failed", "error");
     }
     setImporting(false);
   };

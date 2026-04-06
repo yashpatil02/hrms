@@ -37,13 +37,19 @@ const StatusBadge = ({ status }) => {
 const PayslipModal = ({ payroll, onClose, onStatusChange }) => {
   const [loading, setLoading] = useState(false);
   const [remark, setRemark] = useState(payroll.remarks || "");
+  const [confirmPaid, setConfirmPaid] = useState(false);
+  const [actionError, setActionError] = useState("");
 
   const changeStatus = async (status) => {
     setLoading(true);
+    setActionError("");
     try {
       await api.put(`/payroll/${payroll.id}/status`, { status, remarks: remark });
       onStatusChange(payroll.id, status);
-    } catch {}
+      setConfirmPaid(false);
+    } catch (err) {
+      setActionError(err.response?.data?.message || "Action failed. Please try again.");
+    }
     setLoading(false);
   };
 
@@ -179,7 +185,26 @@ const PayslipModal = ({ payroll, onClose, onStatusChange }) => {
 
         {/* Footer Actions */}
         {payroll.status !== "PAID" && payroll.status !== "CANCELLED" && (
-          <div className="flex justify-end gap-2 p-4 border-t border-gray-100 print:hidden">
+          <div className="flex flex-col gap-2 p-4 border-t border-gray-100 print:hidden">
+            {actionError && (
+              <p className="text-xs text-red-600 flex items-center gap-1 bg-red-50 px-3 py-2 rounded-lg">
+                <FaExclamationTriangle size={10} /> {actionError}
+              </p>
+            )}
+            {/* ✅ Confirm "Mark as Paid" dialog */}
+            {confirmPaid && (
+              <div className="bg-green-50 border border-green-200 rounded-xl p-3 text-sm">
+                <p className="font-semibold text-green-800 mb-2">Confirm: Mark as Paid?</p>
+                <p className="text-green-700 text-xs mb-3">This will mark ₹{fmt(payroll.netSalary)} as paid to {payroll.user?.name}. This action cannot be undone.</p>
+                <div className="flex gap-2">
+                  <button onClick={() => setConfirmPaid(false)} className="flex-1 py-1.5 text-xs font-semibold text-gray-600 bg-white border border-gray-200 rounded-lg">Cancel</button>
+                  <button onClick={() => changeStatus("PAID")} disabled={loading} className="flex-1 py-1.5 text-xs font-semibold text-white bg-green-600 hover:bg-green-700 rounded-lg disabled:opacity-60">
+                    {loading ? "…" : "Confirm Paid"}
+                  </button>
+                </div>
+              </div>
+            )}
+            <div className="flex justify-end gap-2">
             {payroll.status === "DRAFT" && (
               <>
                 <button
@@ -198,15 +223,15 @@ const PayslipModal = ({ payroll, onClose, onStatusChange }) => {
                 </button>
               </>
             )}
-            {payroll.status === "APPROVED" && (
+            {payroll.status === "APPROVED" && !confirmPaid && (
               <button
-                onClick={() => changeStatus("PAID")}
-                disabled={loading}
-                className="flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-white bg-green-600 hover:bg-green-700 rounded-xl transition disabled:opacity-60"
+                onClick={() => setConfirmPaid(true)}
+                className="flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-white bg-green-600 hover:bg-green-700 rounded-xl transition"
               >
-                <FaCreditCard size={11} /> {loading ? "…" : "Mark as Paid"}
+                <FaCreditCard size={11} /> Mark as Paid
               </button>
             )}
+            </div>
           </div>
         )}
       </div>
@@ -232,7 +257,9 @@ export default function PayrollManagement() {
     try {
       const { data } = await api.get(`/payroll/list?month=${month}&year=${year}`);
       setPayrolls(data);
-    } catch {}
+    } catch (err) {
+      console.error("Load payroll error:", err);
+    }
     setLoading(false);
   }, [month, year]);
 

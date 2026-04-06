@@ -153,14 +153,18 @@ export default function MyPayslips() {
   const [payslips, setPayslips] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(null);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     const load = async () => {
       setLoading(true);
+      setError("");
       try {
         const { data } = await api.get("/payroll/my-payslips");
         setPayslips(data);
-      } catch {}
+      } catch (err) {
+        setError(err.response?.data?.message || "Failed to load payslips. Please try again.");
+      }
       setLoading(false);
     };
     load();
@@ -200,10 +204,17 @@ export default function MyPayslips() {
           </div>
         )}
 
+        {/* Error */}
+        {error && (
+          <div className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 text-sm">
+            <FaFileAlt size={13} /> {error}
+          </div>
+        )}
+
         {/* List */}
         {loading ? (
           <div className="text-center py-16 text-gray-400 text-sm">Loading payslips…</div>
-        ) : payslips.length === 0 ? (
+        ) : payslips.length === 0 && !error ? (
           <div className="text-center py-16 text-gray-400">
             <FaFileAlt size={36} className="mx-auto mb-3 opacity-20" />
             <p className="text-sm font-medium">No payslips yet</p>

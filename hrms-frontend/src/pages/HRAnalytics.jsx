@@ -66,10 +66,12 @@ export default function HRAnalytics() {
   const [headcount,    setHeadcount]    = useState([]);
   const [absentees,    setAbsentees]    = useState([]);
   const [loading,      setLoading]      = useState(true);
+  const [error,        setError]        = useState("");
 
   useEffect(() => {
     const loadAll = async () => {
       setLoading(true);
+      setError("");
       try {
         const [ov, ds, at, ls, pt, hc, ab] = await Promise.all([
           api.get("/analytics/overview"),
@@ -87,7 +89,9 @@ export default function HRAnalytics() {
         setPayrollTrend(pt.data);
         setHeadcount(hc.data);
         setAbsentees(ab.data);
-      } catch {}
+      } catch (err) {
+        setError(err.response?.data?.message || "Failed to load analytics. Please try again.");
+      }
       setLoading(false);
     };
     loadAll();
@@ -98,6 +102,18 @@ export default function HRAnalytics() {
       <Layout>
         <div className="flex items-center justify-center h-64 gap-3 text-gray-400">
           <FaSpinner className="animate-spin" size={20} /> Loading analytics…
+        </div>
+      </Layout>
+    );
+  }
+
+  if (error) {
+    return (
+      <Layout>
+        <div className="flex flex-col items-center justify-center h-64 gap-3 text-red-500">
+          <FaExclamationCircle size={32} />
+          <p className="font-semibold">{error}</p>
+          <button onClick={() => window.location.reload()} className="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-semibold">Retry</button>
         </div>
       </Layout>
     );

@@ -5,6 +5,7 @@ import {
   getSalaryStructure,
   getAllSalaryStructures,
   upsertSalaryStructure,
+  deleteSalaryStructure,
   generatePayroll,
   getPayrollList,
   getPayrollById,
@@ -22,6 +23,7 @@ router.use(authenticate);
 router.get("/salary-structures", requireRole(["ADMIN", "HR"]), getAllSalaryStructures);
 router.get("/salary-structure/:userId", requireRole(["ADMIN", "HR"]), getSalaryStructure);
 router.put("/salary-structure/:userId", requireRole(["ADMIN", "HR"]), upsertSalaryStructure);
+router.delete("/salary-structure/:userId", requireRole(["ADMIN", "HR"]), deleteSalaryStructure);
 router.get("/employees-without-structure", requireRole(["ADMIN", "HR"]), getEmployeesWithoutStructure);
 
 // ── Payroll Generation & Management (Admin/HR only) ──

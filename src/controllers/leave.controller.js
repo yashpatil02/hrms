@@ -5,8 +5,9 @@ import { createNotification } from "../utils/createNotification.js";
    HELPER
 ============================================================ */
 const diffDays = (from, to) => {
-  const ms = new Date(to) - new Date(from);
-  return Math.max(1, Math.ceil(ms / (1000*60*60*24)) + 1);
+  // ✅ Fix: floor not ceil, no +1 offset — same-day = 1 day correctly
+  const ms = new Date(to).setHours(0,0,0,0) - new Date(from).setHours(0,0,0,0);
+  return Math.max(1, Math.floor(ms / (1000*60*60*24)) + 1);
 };
 
 const fmtDate = (d) =>
@@ -120,8 +121,8 @@ export const getMyLeaves = async (req, res) => {
     if (status && status !== "ALL") where.status = status;
     if (year) {
       where.fromDate = {
-        gte: new Date(`${year}-01-01`),
-        lte: new Date(`${year}-12-31`),
+        gte: new Date(`${year}-01-01T00:00:00.000Z`),
+        lte: new Date(`${year}-12-31T23:59:59.999Z`), // ✅ Fix: include Dec 31
       };
     }
 

@@ -44,6 +44,8 @@ const Field = ({ label, name, value, onChange, suffix, hint }) => (
       <input
         type="number"
         min="0"
+        max={suffix === "%" ? "100" : undefined}  // ✅ cap % fields at 100
+        step={suffix === "%" ? "0.01" : "1"}
         name={name}
         value={value}
         onChange={onChange}

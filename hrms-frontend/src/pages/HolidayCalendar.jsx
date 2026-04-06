@@ -25,7 +25,9 @@ export default function HolidayCalendar() {
       try {
         const { data } = await api.get(`/holidays?year=${year}`);
         setHolidays(data);
-      } catch {}
+      } catch (err) {
+        console.error("Load holidays error:", err);
+      }
       setLoading(false);
     };
     load();

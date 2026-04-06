@@ -57,6 +57,15 @@ export default function EmployeeProfile() {
 
   useEffect(() => { loadProfile(); }, []);
 
+  // ✅ Warn before leaving page with unsaved changes
+  useEffect(() => {
+    const handleBeforeUnload = (e) => {
+      if (editMode) { e.preventDefault(); e.returnValue = ""; }
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [editMode]);
+
   const loadProfile = async () => {
     setLoading(true);
     try {
@@ -78,9 +87,9 @@ export default function EmployeeProfile() {
     try {
       const { data } = await api.put("/profile/me", form);
       setProfile((p) => ({ ...p, ...data.user }));
-      // sync localStorage
+      // ✅ Only sync name to localStorage — never store base64 avatar (bloats storage)
       const stored = JSON.parse(localStorage.getItem("user") || "{}");
-      localStorage.setItem("user", JSON.stringify({ ...stored, name: data.user.name, avatar: data.user.avatar }));
+      localStorage.setItem("user", JSON.stringify({ ...stored, name: data.user.name }));
       setEditMode(false);
       showToast("Profile updated successfully!");
     } catch (err) {

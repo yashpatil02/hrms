@@ -201,7 +201,7 @@ export const markAttendance = async (req, res) => {
       select: { name:true, weeklyOff:true, weekoffBalance:true },
     });
 
-    const dayName     = WEEK_DAYS[attendanceDate.getDay()];
+    const dayName     = WEEK_DAYS[attendanceDate.getUTCDay()]; // ✅ UTC to avoid timezone day-shift
     const isWeeklyOff = user.weeklyOff === dayName;
 
     const existing = await prisma.attendance.findUnique({
