@@ -101,10 +101,37 @@ export default function EmployeeProfile() {
   const handleAvatarChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    if (file.size > 500 * 1024) { showToast("Image must be under 500KB", "error"); return; }
-    const reader = new FileReader();
-    reader.onload = (ev) => setForm((p) => ({ ...p, avatar: ev.target.result }));
-    reader.readAsDataURL(file);
+
+    // ✅ Accept up to 5MB, then auto-compress via canvas
+    if (file.size > 5 * 1024 * 1024) {
+      showToast("Image must be under 5MB", "error");
+      return;
+    }
+
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      // Resize to max 400×400 keeping aspect ratio
+      const MAX = 400;
+      let { width, height } = img;
+      if (width > MAX || height > MAX) {
+        if (width > height) { height = Math.round((height * MAX) / width); width = MAX; }
+        else                { width  = Math.round((width  * MAX) / height); height = MAX; }
+      }
+      const canvas = document.createElement("canvas");
+      canvas.width  = width;
+      canvas.height = height;
+      canvas.getContext("2d").drawImage(img, 0, 0, width, height);
+      // Compress to JPEG quality 0.82 — keeps good quality, small size
+      const compressed = canvas.toDataURL("image/jpeg", 0.82);
+      URL.revokeObjectURL(url);
+      setForm((p) => ({ ...p, avatar: compressed }));
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      showToast("Invalid image file", "error");
+    };
+    img.src = url;
   };
 
   const handlePasswordChange = async () => {
@@ -138,7 +165,8 @@ export default function EmployeeProfile() {
           <div className="absolute top-0 right-0 w-48 h-48 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2" />
           <div className="flex items-center gap-5 relative z-10">
             <div className="relative flex-shrink-0">
-              <Avatar name={profile?.name} avatar={profile?.avatar} size="lg" />
+              {/* Show preview of new image while in edit mode */}
+              <Avatar name={profile?.name} avatar={editMode && form.avatar ? form.avatar : profile?.avatar} size="lg" />
               {editMode && (
                 <>
                   <button
