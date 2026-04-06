@@ -56,7 +56,7 @@ const N_DOT = {
 /* ============================================================
    NAVBAR
 ============================================================ */
-const Navbar = () => {
+const Navbar = ({ onMobileMenuToggle }) => {
   const { alerts = [], unreadCount = 0, markAsRead, markAllRead } = useNotifications();
 
   const [notifOpen, setNotifOpen] = useState(false);
@@ -112,10 +112,22 @@ const Navbar = () => {
   }[user?.role] || "bg-gray-100 text-gray-600";
 
   return (
-    <div className="bg-white shadow px-6 py-0 h-14 flex items-center justify-between flex-shrink-0 z-40">
+    <div className="bg-white shadow px-3 sm:px-6 py-0 h-14 flex items-center justify-between flex-shrink-0 z-40">
 
-      {/* ── LEFT: DYNAMIC PAGE TITLE ── */}
-      <h1 className="font-semibold text-lg text-gray-800 truncate">{pageTitle}</h1>
+      {/* ── LEFT: HAMBURGER (mobile) + PAGE TITLE ── */}
+      <div className="flex items-center gap-3 min-w-0">
+        {/* hamburger — only on mobile */}
+        <button
+          onClick={onMobileMenuToggle}
+          className="lg:hidden w-9 h-9 flex items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-800 transition-colors flex-shrink-0"
+          aria-label="Toggle menu"
+        >
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16"/>
+          </svg>
+        </button>
+        <h1 className="font-semibold text-base sm:text-lg text-gray-800 truncate">{pageTitle}</h1>
+      </div>
 
       {/* ── RIGHT: ACTIONS ── */}
       <div className="flex items-center gap-3 flex-shrink-0">
@@ -143,7 +155,7 @@ const Navbar = () => {
 
           {/* NOTIFICATION DROPDOWN */}
           {notifOpen && (
-            <div className="absolute right-0 top-11 w-80 bg-white shadow-xl rounded-xl z-50 border border-gray-100 overflow-hidden">
+            <div className="absolute right-0 top-11 w-80 max-w-[calc(100vw-1rem)] bg-white shadow-xl rounded-xl z-50 border border-gray-100 overflow-hidden">
 
               {/* HEADER */}
               <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">

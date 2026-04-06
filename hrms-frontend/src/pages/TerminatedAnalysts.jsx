@@ -128,9 +128,9 @@ export default function TerminatedAnalysts() {
       </div>
 
       {/* LIST */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-x-auto">
 
-        <div className="grid grid-cols-12 gap-4 px-5 py-3 border-b border-gray-100 text-xs font-semibold text-gray-400 uppercase tracking-wider">
+        <div className="grid grid-cols-12 gap-4 px-5 py-3 border-b border-gray-100 text-xs font-semibold text-gray-400 uppercase tracking-wider min-w-[620px]">
           <div className="col-span-4">Analyst</div>
           <div className="col-span-2 hidden sm:block">Department</div>
           <div className="col-span-2 hidden md:block">Last Shift</div>

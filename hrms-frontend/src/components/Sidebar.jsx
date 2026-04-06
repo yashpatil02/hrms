@@ -103,7 +103,7 @@ const Tooltip = ({ label, children }) => (
 /* ============================================================
    SIDEBAR
 ============================================================ */
-const Sidebar = ({ collapsed, setCollapsed }) => {
+const Sidebar = ({ collapsed, setCollapsed, onMobileClose }) => {
   const location = useLocation();
   const user = JSON.parse(localStorage.getItem("user") || "{}");
   const role = user?.role || "EMPLOYEE";
@@ -270,7 +270,7 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
                 <NavLink
                   key={item.path}
                   to={item.path}
-                  onClick={() => setSearch("")}
+                  onClick={() => { setSearch(""); onMobileClose?.(); }}
                   className={({ isActive }) => `
                     flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm
                     transition-all mb-0.5
@@ -328,6 +328,7 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
                   <Tooltip key={item.path} label={item.name}>
                     <NavLink
                       to={item.path}
+                      onClick={() => onMobileClose?.()}
                       className={`
                         flex items-center justify-center
                         w-10 h-10 rounded-lg mx-auto mb-1
@@ -346,6 +347,7 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
                   <NavLink
                     key={item.path}
                     to={item.path}
+                    onClick={() => onMobileClose?.()}
                     className={({ isActive: a }) => `
                       group flex items-center gap-3
                       px-3 py-2.5 rounded-lg transition-all mb-0.5

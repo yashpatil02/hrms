@@ -186,10 +186,10 @@ export default function Documents() {
           </div>
 
         ) : (
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-x-auto">
 
             {/* TABLE HEADER */}
-            <div className="grid grid-cols-12 gap-3 px-5 py-3 border-b border-gray-100 text-xs font-bold text-gray-400 uppercase tracking-wider">
+            <div className="grid grid-cols-12 gap-3 px-5 py-3 border-b border-gray-100 text-xs font-bold text-gray-400 uppercase tracking-wider min-w-[560px]">
               <div className="col-span-5">Employee</div>
               <div className="col-span-3 hidden sm:block">Department</div>
               <div className="col-span-2 text-center">Documents</div>

@@ -616,7 +616,7 @@ export default function AdminLeaveApproval() {
           TAB: ALL LEAVES
       ======================== */}
       {tab==="all" && (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-x-auto">
           {/* FILTERS */}
           <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100 flex-wrap">
             <div className="relative flex-1 min-w-[200px]">
@@ -641,7 +641,7 @@ export default function AdminLeaveApproval() {
           </div>
 
           {/* TABLE HEADER */}
-          <div className="grid grid-cols-12 gap-3 px-5 py-3 border-b border-gray-50 text-xs font-semibold text-gray-400 uppercase tracking-wider">
+          <div className="grid grid-cols-12 gap-3 px-5 py-3 border-b border-gray-50 text-xs font-semibold text-gray-400 uppercase tracking-wider min-w-[620px]">
             <div className="col-span-4">Employee</div>
             <div className="col-span-3">Leave Period</div>
             <div className="col-span-2 hidden md:block">Reason</div>

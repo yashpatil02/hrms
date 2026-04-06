@@ -764,7 +764,7 @@ const Attendance = () => {
           TAB: HISTORY
       ============================ */}
       {tab==="history" && (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-x-auto">
           {/* FILTERS */}
           <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100 flex-wrap">
             <input type="date" value={fromDate} onChange={e=>setFromDate(e.target.value)}
@@ -788,7 +788,7 @@ const Attendance = () => {
           </div>
 
           {/* TABLE HEADER */}
-          <div className="grid grid-cols-12 gap-3 px-5 py-3 border-b border-gray-50 text-xs font-semibold text-gray-400 uppercase tracking-wider">
+          <div className="grid grid-cols-12 gap-3 px-5 py-3 border-b border-gray-50 text-xs font-semibold text-gray-400 uppercase tracking-wider min-w-[560px]">
             <div className="col-span-3">Date</div>
             <div className="col-span-2 text-center hidden sm:block">In (IST)</div>
             <div className="col-span-2 text-center hidden sm:block">Out (IST)</div>

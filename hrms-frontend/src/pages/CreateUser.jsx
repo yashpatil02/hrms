@@ -321,7 +321,7 @@ export default function CreateUser() {
             TAB: PENDING INVITES
         ============================ */}
         {activeTab === "pending" && (
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-x-auto">
 
             {/* TABLE HEADER */}
             <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 gap-4 flex-wrap">
@@ -341,7 +341,7 @@ export default function CreateUser() {
             </div>
 
             {/* COLUMN HEADERS */}
-            <div className="grid grid-cols-12 gap-4 px-5 py-3 border-b border-gray-50 text-xs font-semibold text-gray-400 uppercase tracking-wider">
+            <div className="grid grid-cols-12 gap-4 px-5 py-3 border-b border-gray-50 text-xs font-semibold text-gray-400 uppercase tracking-wider min-w-[620px]">
               <div className="col-span-4">Invited Person</div>
               <div className="col-span-2">Role</div>
               <div className="col-span-2 hidden sm:block">Department</div>

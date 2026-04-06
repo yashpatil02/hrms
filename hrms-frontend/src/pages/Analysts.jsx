@@ -513,10 +513,10 @@ export default function Analysts() {
       {/* ============================
           TABLE
       ============================ */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-x-auto">
 
         {/* TABLE HEADER */}
-        <div className="grid grid-cols-12 gap-4 px-5 py-3 border-b border-gray-100 text-xs font-semibold text-gray-400 uppercase tracking-wider">
+        <div className="grid grid-cols-12 gap-4 px-5 py-3 border-b border-gray-100 text-xs font-semibold text-gray-400 uppercase tracking-wider min-w-[620px]">
           <div className="col-span-1 flex items-center">
             <input type="checkbox" checked={selected.length===filtered.length&&filtered.length>0}
               onChange={toggleAll} className="w-3.5 h-3.5 accent-indigo-600 cursor-pointer"/>

@@ -661,7 +661,7 @@ export default function AdminAttendanceAudit() {
       {/* ============================
           TABLE / TIMELINE
       ============================ */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-x-auto">
 
         {loading ? (
           <div className="flex flex-col items-center justify-center py-16 gap-3">
@@ -682,7 +682,7 @@ export default function AdminAttendanceAudit() {
         ) : (
           <>
             {/* TABLE HEADER */}
-            <div className="grid grid-cols-12 gap-3 px-5 py-3 border-b border-gray-100 text-xs font-semibold text-gray-400 uppercase tracking-wider">
+            <div className="grid grid-cols-12 gap-3 px-5 py-3 border-b border-gray-100 text-xs font-semibold text-gray-400 uppercase tracking-wider min-w-[620px]">
               <div className="col-span-2">Date</div>
               <div className="col-span-3">Analyst</div>
               <div className="col-span-1 hidden sm:block">Shift</div>

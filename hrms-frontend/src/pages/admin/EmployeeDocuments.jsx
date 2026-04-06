@@ -791,8 +791,8 @@ export default function EmployeeDocuments() {
 
         ) : viewMode === "list" ? (
           /* ── LIST VIEW ── */
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-            <div className="grid grid-cols-12 gap-3 px-5 py-3 border-b border-gray-100 text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-x-auto">
+            <div className="grid grid-cols-12 gap-3 px-5 py-3 border-b border-gray-100 text-[10px] font-bold text-gray-400 uppercase tracking-wider min-w-[560px]">
               {bulkMode && <div className="col-span-1"/>}
               <div className={bulkMode?"col-span-4":"col-span-5"}>File</div>
               <div className="col-span-2">Type</div>

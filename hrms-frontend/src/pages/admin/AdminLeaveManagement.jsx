@@ -402,10 +402,10 @@ const AdminLeaveManagement = () => {
       </div>
 
       {/* TABLE */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-x-auto">
 
         {/* HEADER ROW */}
-        <div className="grid grid-cols-12 gap-3 px-5 py-3 border-b border-gray-100 text-xs font-semibold text-gray-400 uppercase tracking-wider">
+        <div className="grid grid-cols-12 gap-3 px-5 py-3 border-b border-gray-100 text-xs font-semibold text-gray-400 uppercase tracking-wider min-w-[580px]">
           <div className="col-span-4">Employee</div>
           <div className="col-span-3">Leave Period</div>
           <div className="col-span-2 hidden md:block">Reason</div>

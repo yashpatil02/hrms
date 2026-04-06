@@ -547,10 +547,10 @@ export default function AdminAttendanceByShift() {
           <p className="text-gray-400 text-sm">Assign analysts to this shift from Analyst Master</p>
         </div>
       ) : (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-x-auto">
 
           {/* HEADER ROW */}
-          <div className="grid grid-cols-12 gap-4 px-5 py-3 border-b border-gray-100 text-xs font-semibold text-gray-400 uppercase tracking-wider">
+          <div className="grid grid-cols-12 gap-4 px-5 py-3 border-b border-gray-100 text-xs font-semibold text-gray-400 uppercase tracking-wider min-w-[620px]">
             <div className="col-span-1 flex items-center">
               <input type="checkbox"
                 checked={selected.length===filtered.length&&filtered.length>0}
