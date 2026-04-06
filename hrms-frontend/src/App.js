@@ -30,6 +30,10 @@ import WeeklyOffSettings from "./pages/WeeklyOffSettings";
 import SalaryStructure from "./pages/SalaryStructure";
 import PayrollManagement from "./pages/PayrollManagement";
 import MyPayslips from "./pages/employee/MyPayslips";
+import EmployeeProfile from "./pages/EmployeeProfile";
+import HolidayManagement from "./pages/HolidayManagement";
+import HolidayCalendar from "./pages/HolidayCalendar";
+import HRAnalytics from "./pages/HRAnalytics";
 
 function App() {
   return (
@@ -245,6 +249,34 @@ function App() {
               <EmployeeDocuments />
             </AdminRoute>
           }
+        />
+
+        {/* ===========================
+            PROFILE
+        =========================== */}
+        <Route
+          path="/profile"
+          element={<ProtectedRoute><EmployeeProfile /></ProtectedRoute>}
+        />
+
+        {/* ===========================
+            HOLIDAYS
+        =========================== */}
+        <Route
+          path="/holidays"
+          element={<ProtectedRoute><HolidayCalendar /></ProtectedRoute>}
+        />
+        <Route
+          path="/admin/holidays"
+          element={<AdminRoute><HolidayManagement /></AdminRoute>}
+        />
+
+        {/* ===========================
+            HR ANALYTICS
+        =========================== */}
+        <Route
+          path="/admin/analytics"
+          element={<AdminRoute><HRAnalytics /></AdminRoute>}
         />
 
         {/* ===========================

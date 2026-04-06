@@ -4,8 +4,9 @@ import {
   FaTachometerAlt, FaUserCheck, FaUsers, FaCalendarAlt,
   FaClipboardList, FaChartBar, FaHistory, FaBars,
   FaFolderOpen, FaBell, FaUserSlash, FaUserPlus,
-  FaSearch, FaTimes, FaChevronDown, FaChevronRight,FaCalendarCheck,
+  FaSearch, FaTimes, FaChevronDown, FaChevronRight, FaCalendarCheck,
   FaShieldAlt, FaUserTie, FaCog, FaMoneyBillWave, FaMoneyCheckAlt,
+  FaUserCircle, FaGlobe, FaPollH,
 } from "react-icons/fa";
 
 /* ============================================================
@@ -16,8 +17,9 @@ const FULL_MENU = [
     id: "main",
     section: "MAIN",
     items: [
-      { name: "Dashboard", path: "/dashboard", icon: <FaTachometerAlt />, roles: ["ADMIN", "HR", "EMPLOYEE"] },
-      { name: "Notifications", path: "/notifications", icon: <FaBell />, roles: ["ADMIN", "HR", "EMPLOYEE"] },
+      { name: "Dashboard",    path: "/dashboard",    icon: <FaTachometerAlt />, roles: ["ADMIN", "HR", "EMPLOYEE"] },
+      { name: "Notifications",path: "/notifications",icon: <FaBell />,          roles: ["ADMIN", "HR", "EMPLOYEE"] },
+      { name: "My Profile",   path: "/profile",      icon: <FaUserCircle />,    roles: ["ADMIN", "HR", "EMPLOYEE"] },
     ],
   },
   {
@@ -71,12 +73,28 @@ const FULL_MENU = [
     ],
   },
   {
+    id: "holidays",
+    section: "HOLIDAYS",
+    items: [
+      { name: "Holiday Calendar",    path: "/holidays",             icon: <FaGlobe />,       roles: ["ADMIN", "HR", "EMPLOYEE"] },
+      { name: "Holiday Management",  path: "/admin/holidays",       icon: <FaCalendarAlt />, roles: ["ADMIN", "HR"] },
+    ],
+  },
+  {
     id: "payroll",
     section: "PAYROLL",
     roles: ["ADMIN", "HR"],
     items: [
-      { name: "Salary Structures", path: "/admin/salary-structure", icon: <FaMoneyBillWave /> },
-      { name: "Payroll Management", path: "/admin/payroll",          icon: <FaMoneyCheckAlt /> },
+      { name: "Salary Structures",  path: "/admin/salary-structure", icon: <FaMoneyBillWave /> },
+      { name: "Payroll Management", path: "/admin/payroll",           icon: <FaMoneyCheckAlt /> },
+    ],
+  },
+  {
+    id: "analytics",
+    section: "REPORTS",
+    roles: ["ADMIN", "HR"],
+    items: [
+      { name: "HR Analytics", path: "/admin/analytics", icon: <FaPollH /> },
     ],
   },
   {

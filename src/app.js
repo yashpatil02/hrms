@@ -16,6 +16,9 @@ import notificationRoutes from "./routes/notification.routes.js";
 import documentRoutes from "./routes/document.routes.js";
 import weeklyoffRoutes from "./routes/weeklyoff.routes.js";
 import payrollRoutes from "./routes/payroll.routes.js";
+import holidayRoutes from "./routes/holiday.routes.js";
+import profileRoutes from "./routes/profile.routes.js";
+import analyticsRoutes from "./routes/analytics.routes.js";
 
 const app = express();
 
@@ -106,6 +109,15 @@ app.use("/api/weekoff", weeklyoffRoutes);
 
 // 💰 PAYROLL
 app.use("/api/payroll", payrollRoutes);
+
+// 🗓 HOLIDAYS
+app.use("/api/holidays", holidayRoutes);
+
+// 👤 PROFILE
+app.use("/api/profile", profileRoutes);
+
+// 📊 ANALYTICS
+app.use("/api/analytics", analyticsRoutes);
 
 /* ================================
    FALLBACKS

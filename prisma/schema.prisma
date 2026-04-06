@@ -236,6 +236,26 @@ model SystemSettings {
   updatedAt DateTime @updatedAt
 }
 
+// ── HOLIDAY MODULE ──
+model Holiday {
+  id          Int      @id @default(autoincrement())
+  name        String
+  date        DateTime
+  type        HolidayType @default(PUBLIC)
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([date])
+  @@index([date])
+}
+
+enum HolidayType {
+  PUBLIC
+  OPTIONAL
+  RESTRICTED
+}
+
 // ── PAYROLL MODULE ──
 model SalaryStructure {
   id              Int      @id @default(autoincrement())
