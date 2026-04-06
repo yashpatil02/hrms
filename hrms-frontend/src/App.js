@@ -27,6 +27,9 @@ import Documents from "./pages/admin/Documents";
 import EmployeeDocuments from "./pages/admin/EmployeeDocuments";
 import Settings from "./pages/Setting";
 import WeeklyOffSettings from "./pages/WeeklyOffSettings";
+import SalaryStructure from "./pages/SalaryStructure";
+import PayrollManagement from "./pages/PayrollManagement";
+import MyPayslips from "./pages/employee/MyPayslips";
 
 function App() {
   return (
@@ -241,6 +244,34 @@ function App() {
             <AdminRoute>
               <EmployeeDocuments />
             </AdminRoute>
+          }
+        />
+
+        {/* ===========================
+            PAYROLL ROUTES
+        =========================== */}
+        <Route
+          path="/admin/salary-structure"
+          element={
+            <AdminRoute>
+              <SalaryStructure />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/admin/payroll"
+          element={
+            <AdminRoute>
+              <PayrollManagement />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/my-payslips"
+          element={
+            <ProtectedRoute>
+              <MyPayslips />
+            </ProtectedRoute>
           }
         />
 

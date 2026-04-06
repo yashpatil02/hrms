@@ -5,7 +5,7 @@ import {
   FaClipboardList, FaChartBar, FaHistory, FaBars,
   FaFolderOpen, FaBell, FaUserSlash, FaUserPlus,
   FaSearch, FaTimes, FaChevronDown, FaChevronRight,FaCalendarCheck,
-  FaShieldAlt, FaUserTie, FaCog,
+  FaShieldAlt, FaUserTie, FaCog, FaMoneyBillWave, FaMoneyCheckAlt,
 } from "react-icons/fa";
 
 /* ============================================================
@@ -68,6 +68,23 @@ const FULL_MENU = [
     items: [
       { name: "Leave Approval", path: "/admin/leaves", icon: <FaCalendarAlt /> },
       { name: "Leave Management", path: "/admin/leaves-management", icon: <FaClipboardList /> },
+    ],
+  },
+  {
+    id: "payroll",
+    section: "PAYROLL",
+    roles: ["ADMIN", "HR"],
+    items: [
+      { name: "Salary Structures", path: "/admin/salary-structure", icon: <FaMoneyBillWave /> },
+      { name: "Payroll Management", path: "/admin/payroll",          icon: <FaMoneyCheckAlt /> },
+    ],
+  },
+  {
+    id: "my-payroll",
+    section: "MY PAYROLL",
+    roles: ["EMPLOYEE"],
+    items: [
+      { name: "My Payslips", path: "/my-payslips", icon: <FaMoneyBillWave /> },
     ],
   },
   /* ── SETTINGS — visible to all roles ── */

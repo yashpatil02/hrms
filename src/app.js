@@ -15,6 +15,7 @@ import settingsRoutes from "./routes/settings.routes.js";
 import notificationRoutes from "./routes/notification.routes.js";
 import documentRoutes from "./routes/document.routes.js";
 import weeklyoffRoutes from "./routes/weeklyoff.routes.js";
+import payrollRoutes from "./routes/payroll.routes.js";
 
 const app = express();
 
@@ -100,8 +101,11 @@ app.use("/api/documents", documentRoutes);
 // setting routes 
 app.use("/api/settings", settingsRoutes);
 
-// weeklyoff 
+// weeklyoff
 app.use("/api/weekoff", weeklyoffRoutes);
+
+// 💰 PAYROLL
+app.use("/api/payroll", payrollRoutes);
 
 /* ================================
    FALLBACKS
