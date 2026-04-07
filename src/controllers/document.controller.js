@@ -25,7 +25,7 @@ const uploadToCloudinary = (buffer, mimetype) =>
 /* ─────────────────────────────────────────────────────────────
    GET ALL USERS WITH DOCUMENT COUNT  (Admin / HR)
 ───────────────────────────────────────────────────────────── */
-export const getEmployeesWithDocuments = async (req, res) => {
+export const getEmployeesWithDocuments = async (_req, res) => {
   try {
     const users = await prisma.user.findMany({
       select: {
@@ -284,7 +284,7 @@ export const cancelDocumentRequest = async (req, res) => {
 };
 
 /* ─────────────────────────────────────────────────────────────
-   DOWNLOAD  — redirect to Cloudinary URL
+   DOWNLOAD  — proxy from Cloudinary with attachment header
 ───────────────────────────────────────────────────────────── */
 export const downloadDocument = async (req, res) => {
   try {
@@ -294,12 +294,15 @@ export const downloadDocument = async (req, res) => {
     if (req.user.role === "EMPLOYEE" && document.employeeId !== req.user.id)
       return res.status(403).json({ msg: "Access denied" });
 
-    // For Cloudinary-hosted files redirect with download disposition
-    if (document.fileUrl?.startsWith("http")) {
-      return res.redirect(document.fileUrl);
-    }
+    if (!document.fileUrl) return res.status(404).json({ msg: "File not found" });
 
-    return res.status(404).json({ msg: "File not found" });
+    const response = await fetch(document.fileUrl);
+    if (!response.ok) return res.status(404).json({ msg: "File not found on storage" });
+
+    res.setHeader("Content-Type", document.mimeType);
+    res.setHeader("Content-Disposition", `attachment; filename="${document.fileName}"`);
+    res.setHeader("Cache-Control", "no-store");
+    response.body.pipe(res);
   } catch (err) {
     console.error("downloadDocument error:", err);
     res.status(500).json({ msg: "Download failed" });
@@ -307,7 +310,7 @@ export const downloadDocument = async (req, res) => {
 };
 
 /* ─────────────────────────────────────────────────────────────
-   PREVIEW  — redirect to Cloudinary URL
+   PREVIEW  — proxy from Cloudinary with inline header
 ───────────────────────────────────────────────────────────── */
 export const previewDocument = async (req, res) => {
   try {
@@ -317,11 +320,15 @@ export const previewDocument = async (req, res) => {
     if (req.user.role === "EMPLOYEE" && document.employeeId !== req.user.id)
       return res.status(403).json({ msg: "Access denied" });
 
-    if (document.fileUrl?.startsWith("http")) {
-      return res.redirect(document.fileUrl);
-    }
+    if (!document.fileUrl) return res.status(404).json({ msg: "File not found" });
 
-    return res.status(404).json({ msg: "File not found" });
+    const response = await fetch(document.fileUrl);
+    if (!response.ok) return res.status(404).json({ msg: "File not found on storage" });
+
+    res.setHeader("Content-Type", document.mimeType);
+    res.setHeader("Content-Disposition", `inline; filename="${document.fileName}"`);
+    res.setHeader("Cache-Control", "no-store");
+    response.body.pipe(res);
   } catch (err) {
     console.error("previewDocument error:", err);
     res.status(500).json({ msg: "Preview failed" });
