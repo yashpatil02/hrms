@@ -201,6 +201,7 @@ model EmployeeDocument {
   documentType String
   fileName     String
   fileUrl      String
+  publicId     String?
   mimeType     String
   fileSize     Int
   createdAt    DateTime @default(now())

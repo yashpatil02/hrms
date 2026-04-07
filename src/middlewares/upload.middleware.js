@@ -1,24 +1,6 @@
 import multer from "multer";
-import path from "path";
-import { v4 as uuidv4 } from "uuid";
 
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, "uploads/employee-documents");
-  },
-
-  filename: function (req, file, cb) {
-    const uniqueName =
-      uuidv4() +
-      "-" +
-      Date.now() +
-      path.extname(file.originalname);
-
-    cb(null, uniqueName);
-  },
-});
-
-const fileFilter = (req, file, cb) => {
+const fileFilter = (_req, file, cb) => {
   const allowedTypes = [
     "application/pdf",
     "image/jpeg",
@@ -33,10 +15,11 @@ const fileFilter = (req, file, cb) => {
   }
 };
 
+// Use memory storage — files uploaded to Cloudinary from buffer
 export const upload = multer({
-  storage,
+  storage: multer.memoryStorage(),
   fileFilter,
   limits: {
-    fileSize: 10 * 1024 * 1024,
+    fileSize: 10 * 1024 * 1024, // 10 MB
   },
 });

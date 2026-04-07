@@ -284,7 +284,7 @@ export default function MyDocuments() {
   const [toast,     setToast]     = useState(null);
   const [previewDoc,setPreviewDoc]= useState(null);
   const [deleteDoc, setDeleteDoc] = useState(null);
-  const [uploadFor, setUploadFor] = useState(null); // null = new upload, or a request obj
+  const [uploadFor, setUploadFor] = useState(false); // false = hidden, "new" = new upload, obj = fulfill request
 
   const showToast = useCallback((type, msg) => {
     setToast({ type, msg });
@@ -330,7 +330,7 @@ export default function MyDocuments() {
       <Toast toast={toast}/>
       {previewDoc && <PreviewModal doc={previewDoc} onClose={()=>setPreviewDoc(null)}/>}
       {deleteDoc  && <DeleteModal  doc={deleteDoc}  onClose={()=>setDeleteDoc(null)} onConfirm={confirmDelete}/>}
-      {uploadFor !== undefined && uploadFor !== false && (
+      {uploadFor !== false && (
         <UploadModal
           request={uploadFor === "new" ? null : uploadFor}
           onClose={()=>setUploadFor(false)}

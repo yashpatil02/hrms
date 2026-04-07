@@ -1,14 +1,31 @@
 import { PrismaClient } from "@prisma/client";
-import path from "path";
-import fs from "fs";
 import { createNotification } from "../utils/createNotification.js";
 import { sendDocumentRequestEmail } from "../utils/mailer.js";
+import cloudinary from "../utils/cloudinary.js";
 
 const prisma = new PrismaClient();
 
+/* ─── helper: upload buffer to Cloudinary ─── */
+const uploadToCloudinary = (buffer, mimetype, originalname) =>
+  new Promise((resolve, reject) => {
+    const resourceType = mimetype.includes("pdf") ? "raw" : "image";
+    const upload = cloudinary.uploader.upload_stream(
+      {
+        folder:        "employee-documents",
+        resource_type: resourceType,
+        use_filename:  false,
+        unique_filename: true,
+      },
+      (err, result) => {
+        if (err) return reject(err);
+        resolve(result);
+      }
+    );
+    upload.end(buffer);
+  });
+
 /* ─────────────────────────────────────────────────────────────
    GET ALL USERS WITH DOCUMENT COUNT  (Admin / HR)
-   Returns ALL roles: EMPLOYEE, HR, ADMIN
 ───────────────────────────────────────────────────────────── */
 export const getEmployeesWithDocuments = async (req, res) => {
   try {
@@ -120,15 +137,18 @@ export const uploadDocument = async (req, res) => {
     if (!req.file)
       return res.status(400).json({ msg: "File required" });
 
+    const result = await uploadToCloudinary(req.file.buffer, req.file.mimetype, req.file.originalname);
+
     const document = await prisma.employeeDocument.create({
       data: {
-        employeeId: Number(employeeId),
+        employeeId:  Number(employeeId),
         uploadedBy,
         documentType,
-        fileName: req.file.originalname,
-        fileUrl:  req.file.filename,
-        mimeType: req.file.mimetype,
-        fileSize: req.file.size,
+        fileName:    req.file.originalname,
+        fileUrl:     result.secure_url,
+        publicId:    result.public_id,
+        mimeType:    req.file.mimetype,
+        fileSize:    req.file.size,
       },
     });
 
@@ -162,13 +182,16 @@ export const selfUploadDocument = async (req, res) => {
     if (!req.file)
       return res.status(400).json({ msg: "File required" });
 
+    const result = await uploadToCloudinary(req.file.buffer, req.file.mimetype, req.file.originalname);
+
     const document = await prisma.employeeDocument.create({
       data: {
         employeeId:  userId,
         uploadedBy:  userId,
         documentType,
         fileName:    req.file.originalname,
-        fileUrl:     req.file.filename,
+        fileUrl:     result.secure_url,
+        publicId:    result.public_id,
         mimeType:    req.file.mimetype,
         fileSize:    req.file.size,
       },
@@ -263,7 +286,7 @@ export const cancelDocumentRequest = async (req, res) => {
 };
 
 /* ─────────────────────────────────────────────────────────────
-   DOWNLOAD  (Admin/HR + Employee own docs)
+   DOWNLOAD  — redirect to Cloudinary URL
 ───────────────────────────────────────────────────────────── */
 export const downloadDocument = async (req, res) => {
   try {
@@ -273,10 +296,12 @@ export const downloadDocument = async (req, res) => {
     if (req.user.role === "EMPLOYEE" && document.employeeId !== req.user.id)
       return res.status(403).json({ msg: "Access denied" });
 
-    const filePath = path.join(process.cwd(), "uploads", "employee-documents", document.fileUrl);
-    if (!fs.existsSync(filePath)) return res.status(404).json({ msg: "File not found on server" });
+    // For Cloudinary-hosted files redirect with download disposition
+    if (document.fileUrl?.startsWith("http")) {
+      return res.redirect(document.fileUrl);
+    }
 
-    res.download(filePath, document.fileName);
+    return res.status(404).json({ msg: "File not found" });
   } catch (err) {
     console.error("downloadDocument error:", err);
     res.status(500).json({ msg: "Download failed" });
@@ -284,7 +309,7 @@ export const downloadDocument = async (req, res) => {
 };
 
 /* ─────────────────────────────────────────────────────────────
-   PREVIEW  (Admin/HR + Employee own docs)
+   PREVIEW  — redirect to Cloudinary URL
 ───────────────────────────────────────────────────────────── */
 export const previewDocument = async (req, res) => {
   try {
@@ -294,14 +319,11 @@ export const previewDocument = async (req, res) => {
     if (req.user.role === "EMPLOYEE" && document.employeeId !== req.user.id)
       return res.status(403).json({ msg: "Access denied" });
 
-    const filePath = path.join(process.cwd(), "uploads", "employee-documents", document.fileUrl);
-    if (!fs.existsSync(filePath)) return res.status(404).json({ msg: "File missing" });
+    if (document.fileUrl?.startsWith("http")) {
+      return res.redirect(document.fileUrl);
+    }
 
-    res.setHeader("Content-Type", document.mimeType);
-    res.setHeader("Content-Disposition", `inline; filename="${document.fileName}"`);
-    res.setHeader("Cache-Control", "no-store");
-    res.setHeader("Pragma", "no-cache");
-    res.sendFile(filePath);
+    return res.status(404).json({ msg: "File not found" });
   } catch (err) {
     console.error("previewDocument error:", err);
     res.status(500).json({ msg: "Preview failed" });
@@ -309,7 +331,7 @@ export const previewDocument = async (req, res) => {
 };
 
 /* ─────────────────────────────────────────────────────────────
-   DELETE  (Admin = any; Employee = only self-uploaded)
+   DELETE  — also removes from Cloudinary
 ───────────────────────────────────────────────────────────── */
 export const deleteDocument = async (req, res) => {
   try {
@@ -321,8 +343,11 @@ export const deleteDocument = async (req, res) => {
         return res.status(403).json({ msg: "You can only delete documents you uploaded" });
     }
 
-    const filePath = path.join(process.cwd(), "uploads", "employee-documents", document.fileUrl);
-    if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+    // Delete from Cloudinary if publicId exists
+    if (document.publicId) {
+      const resourceType = document.mimeType?.includes("pdf") ? "raw" : "image";
+      await cloudinary.uploader.destroy(document.publicId, { resource_type: resourceType }).catch(() => {});
+    }
 
     await prisma.employeeDocument.delete({ where: { id: req.params.id } });
     res.json({ msg: "Document deleted" });
