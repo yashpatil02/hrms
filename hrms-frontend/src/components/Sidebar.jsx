@@ -18,14 +18,15 @@ const FULL_MENU = [
     section: "MAIN",
     items: [
       { name: "Dashboard",    path: "/dashboard",    icon: <FaTachometerAlt />, roles: ["ADMIN", "HR", "EMPLOYEE"] },
-      { name: "Notifications",path: "/notifications",icon: <FaBell />,          roles: ["ADMIN", "HR", "EMPLOYEE"] },
-      { name: "My Profile",   path: "/profile",      icon: <FaUserCircle />,    roles: ["ADMIN", "HR", "EMPLOYEE"] },
+      { name: "Dashboard",    path: "/admin/dashboard", icon: <FaTachometerAlt />, roles: ["MANAGER"] },
+      { name: "Notifications",path: "/notifications",icon: <FaBell />,          roles: ["ADMIN", "HR", "EMPLOYEE", "MANAGER"] },
+      { name: "My Profile",   path: "/profile",      icon: <FaUserCircle />,    roles: ["ADMIN", "HR", "EMPLOYEE", "MANAGER"] },
     ],
   },
   {
     id: "employee",
     section: "MY ATTENDANCE",
-    roles: ["ADMIN", "HR", "EMPLOYEE"],
+    roles: ["ADMIN", "HR", "EMPLOYEE", "MANAGER"],
     items: [
       { name: "Attendance", path: "/attendance", icon: <FaUserCheck /> },
       { name: "Leaves", path: "/leaves", icon: <FaCalendarAlt /> },
@@ -35,7 +36,7 @@ const FULL_MENU = [
   {
     id: "documents",
     section: "DOCUMENTS",
-    roles: ["ADMIN", "HR"],
+    roles: ["ADMIN", "HR", "MANAGER"],
     items: [
       { name: "Employee Documents", path: "/admin/documents", icon: <FaFolderOpen /> },
     ],
@@ -60,6 +61,14 @@ const FULL_MENU = [
     ],
   },
   {
+    id: "manager-users",
+    section: "USER MANAGEMENT",
+    roles: ["HR", "MANAGER"],
+    items: [
+      { name: "Employees", path: "/users", icon: <FaUsers /> },
+    ],
+  },
+  {
     id: "attendance",
     section: "ATTENDANCE",
     roles: ["ADMIN", "HR"],
@@ -67,14 +76,21 @@ const FULL_MENU = [
       { name: "Attendance Entry", path: "/admin/attendance-by-shift", icon: <FaUserCheck /> },
       { name: "Attendance Report", path: "/admin/attendance", icon: <FaClipboardList /> },
       { name: "Shift Attendance Report", path: "/admin/shift-attendance-report", icon: <FaChartBar /> },
-      // { name:"Monthly Summary",        path:"/admin/monthly-attendance",      icon:<FaChartBar/>     },
       { name: "Audit Trail", path: "/admin/audit", icon: <FaHistory /> },
+    ],
+  },
+  {
+    id: "manager-attendance",
+    section: "ATTENDANCE",
+    roles: ["MANAGER"],
+    items: [
+      { name: "Attendance Report", path: "/admin/attendance", icon: <FaClipboardList /> },
     ],
   },
   {
     id: "leaves",
     section: "LEAVES",
-    roles: ["ADMIN", "HR"],
+    roles: ["ADMIN", "HR", "MANAGER"],
     items: [
       { name: "Leave Approval", path: "/admin/leaves", icon: <FaCalendarAlt /> },
       { name: "Leave Management", path: "/admin/leaves-management", icon: <FaClipboardList /> },
@@ -84,8 +100,8 @@ const FULL_MENU = [
     id: "holidays",
     section: "HOLIDAYS",
     items: [
-      { name: "Holiday Calendar",    path: "/holidays",             icon: <FaGlobe />,       roles: ["ADMIN", "HR", "EMPLOYEE"] },
-      { name: "Holiday Management",  path: "/admin/holidays",       icon: <FaCalendarAlt />, roles: ["ADMIN", "HR"] },
+      { name: "Holiday Calendar",   path: "/holidays",        icon: <FaGlobe />,       roles: ["ADMIN", "HR", "EMPLOYEE", "MANAGER"] },
+      { name: "Holiday Management", path: "/admin/holidays",  icon: <FaCalendarAlt />, roles: ["ADMIN", "HR", "MANAGER"] },
     ],
   },
   {
@@ -108,7 +124,7 @@ const FULL_MENU = [
   {
     id: "my-payroll",
     section: "MY PAYROLL",
-    roles: ["EMPLOYEE"],
+    roles: ["EMPLOYEE", "MANAGER"],
     items: [
       { name: "My Payslips", path: "/my-payslips", icon: <FaMoneyBillWave /> },
     ],
@@ -118,7 +134,7 @@ const FULL_MENU = [
     id: "settings",
     section: "SETTINGS",
     items: [
-      { name: "Settings", path: "/settings", icon: <FaCog />, roles: ["ADMIN", "HR", "EMPLOYEE"] },
+      { name: "Settings", path: "/settings", icon: <FaCog />, roles: ["ADMIN", "HR", "EMPLOYEE", "MANAGER"] },
     ],
   },
 ];
@@ -245,11 +261,13 @@ const Sidebar = ({ collapsed, setCollapsed, onMobileClose }) => {
               <p className="text-[10px] text-gray-500 truncate mt-0.5 leading-none">{user?.email}</p>
             </div>
             {/* role badge */}
-            <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold flex-shrink-0 ${role === "ADMIN" ? "bg-blue-500/20 text-blue-300" :
-                role === "HR" ? "bg-purple-500/20 text-purple-300" :
-                  "bg-green-500/20 text-green-300"
-              }`}>
-              {role === "ADMIN" ? "Admin" : role === "HR" ? "HR" : "Emp"}
+            <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold flex-shrink-0 ${
+              role === "ADMIN"   ? "bg-blue-500/20   text-blue-300"   :
+              role === "HR"      ? "bg-purple-500/20 text-purple-300" :
+              role === "MANAGER" ? "bg-amber-500/20  text-amber-300"  :
+                                   "bg-green-500/20  text-green-300"
+            }`}>
+              {role === "ADMIN" ? "Admin" : role === "HR" ? "HR" : role === "MANAGER" ? "Mgr" : "Emp"}
             </span>
           </div>
         </div>

@@ -7,7 +7,13 @@ import { createNotification } from "../utils/createNotification.js";
 ================================ */
 export const getUsers = async (req, res) => {
   try {
+    /* MANAGER sees only their own department */
+    const deptFilter = (req.user.role === "MANAGER" && req.user.department)
+      ? { department: req.user.department }
+      : {};
+
     const users = await prisma.user.findMany({
+      where: deptFilter,
       orderBy: { createdAt: "desc" },
       select: {
         id:            true,
@@ -166,7 +172,7 @@ export const updateUserRole = async (req, res) => {
     const id      = parseInt(req.params.id);
     const { role } = req.body;
 
-    if (!["ADMIN","HR","EMPLOYEE"].includes(role))
+    if (!["ADMIN","HR","MANAGER","EMPLOYEE"].includes(role))
       return res.status(400).json({ msg: "Invalid role" });
 
     const user = await prisma.user.findUnique({ where: { id } });

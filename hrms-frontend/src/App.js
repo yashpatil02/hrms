@@ -14,6 +14,7 @@ import AdminAttendanceAudit from "./pages/AdminAttendanceAudit";
 import TerminatedAnalysts from "./pages/TerminatedAnalysts";
 import Register from "./pages/Register";
 import AdminRoute from "./components/AdminRoute";
+import ManagerRoute from "./components/ManagerRoute";
 import CreateUser from "./pages/CreateUser";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import EmployeeDashboard from "./pages/employee/EmployeeDashboard";
@@ -59,14 +60,14 @@ function App() {
         <Route path="/notifications" element={<Notifications />} />
 
         {/* ===========================
-            ADMIN DASHBOARD
+            ADMIN DASHBOARD (MANAGER allowed)
         =========================== */}
         <Route
           path="/admin/dashboard"
           element={
-            <AdminRoute>
+            <ManagerRoute>
               <AdminDashboard />
-            </AdminRoute>
+            </ManagerRoute>
           }
         />
 
@@ -128,33 +129,32 @@ function App() {
             ADMIN ROUTES
         =========================== */}
 
-        {/* ✅ FIX #3 — Users: ProtectedRoute → AdminRoute */}
+        {/* Users: MANAGER allowed (dept-filtered) */}
         <Route
           path="/users"
           element={
-            <AdminRoute>
+            <ManagerRoute>
               <Users />
-            </AdminRoute>
+            </ManagerRoute>
           }
         />
 
-        {/* ✅ FIX #3 — AdminAttendance: ProtectedRoute → AdminRoute */}
+        {/* Attendance report: MANAGER allowed (dept-filtered) */}
         <Route
           path="/admin/attendance"
           element={
-            <AdminRoute>
+            <ManagerRoute>
               <AdminAttendance />
-            </AdminRoute>
+            </ManagerRoute>
           }
         />
 
-        {/* ✅ FIX #3 — AdminMonthlyAttendance: ProtectedRoute → AdminRoute */}
         <Route
           path="/admin/monthly-attendance"
           element={
-            <AdminRoute>
+            <ManagerRoute>
               <AdminMonthlyAttendance />
-            </AdminRoute>
+            </ManagerRoute>
           }
         />
 
@@ -217,42 +217,42 @@ function App() {
           }
         />
 
-        {/* ✅ Admin Leave Approval */}
+        {/* Leave Approval — MANAGER allowed (dept-filtered) */}
         <Route
           path="/admin/leaves"
           element={
-            <AdminRoute>
+            <ManagerRoute>
               <AdminLeaveApproval />
-            </AdminRoute>
+            </ManagerRoute>
           }
         />
 
-        {/* ✅ Admin Leave Management */}
+        {/* Leave Management — MANAGER allowed (dept-filtered) */}
         <Route
           path="/admin/leaves-management"
           element={
-            <AdminRoute>
+            <ManagerRoute>
               <AdminLeaveManagement />
-            </AdminRoute>
+            </ManagerRoute>
           }
         />
 
-        {/* ✅ Admin Documents */}
+        {/* Documents — MANAGER allowed (dept-filtered) */}
         <Route
           path="/admin/documents"
           element={
-            <AdminRoute>
+            <ManagerRoute>
               <Documents />
-            </AdminRoute>
+            </ManagerRoute>
           }
         />
 
         <Route
           path="/admin/documents/:employeeId"
           element={
-            <AdminRoute>
+            <ManagerRoute>
               <EmployeeDocuments />
-            </AdminRoute>
+            </ManagerRoute>
           }
         />
 
@@ -273,7 +273,7 @@ function App() {
         />
         <Route
           path="/admin/holidays"
-          element={<AdminRoute><HolidayManagement /></AdminRoute>}
+          element={<ManagerRoute><HolidayManagement /></ManagerRoute>}
         />
 
         {/* ===========================

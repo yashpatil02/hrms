@@ -96,6 +96,8 @@ export const inviteUser = async (req, res) => {
   try {
     const { name, email, role, department } = req.body;
     if (!name || !email || !role) return res.status(400).json({ msg: "Name, email and role are required" });
+    if (["EMPLOYEE","MANAGER"].includes(role) && !department)
+      return res.status(400).json({ msg: "Department is required for Employee and Manager roles" });
 
     // check if email already a registered user
     const existingUser = await prisma.user.findUnique({ where: { email } });

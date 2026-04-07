@@ -26,9 +26,14 @@ const uploadToCloudinary = (buffer, mimetype) =>
 /* ─────────────────────────────────────────────────────────────
    GET ALL USERS WITH DOCUMENT COUNT  (Admin / HR)
 ───────────────────────────────────────────────────────────── */
-export const getEmployeesWithDocuments = async (_req, res) => {
+export const getEmployeesWithDocuments = async (req, res) => {
   try {
+    /* MANAGER sees only their own department's employees */
+    const deptWhere = (req.user.role === "MANAGER" && req.user.department)
+      ? { department: req.user.department } : {};
+
     const users = await prisma.user.findMany({
+      where: deptWhere,
       select: {
         id: true,
         name: true,

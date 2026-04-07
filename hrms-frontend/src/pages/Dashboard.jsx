@@ -7,7 +7,7 @@ const Dashboard = () => {
     return <Navigate to="/login" />;
   }
 
-  if (user.role === "ADMIN" || user.role === "HR") {
+  if (["ADMIN", "HR", "MANAGER"].includes(user.role)) {
     return <Navigate to="/admin/dashboard" />;
   }
 

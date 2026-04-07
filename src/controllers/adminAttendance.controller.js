@@ -41,6 +41,10 @@ export const getAttendanceReport = async (req, res) => {
     const userWhere = {};
     if (role && role !== "ALL")           userWhere.role       = role;
     if (department && department !== "ALL") userWhere.department = department;
+    /* MANAGER always sees only their own department */
+    if (req.user.role === "MANAGER" && req.user.department) {
+      userWhere.department = req.user.department;
+    }
     if (search?.trim()) {
       userWhere.OR = [
         { name:  { contains: search, mode: "insensitive" } },
@@ -222,22 +226,39 @@ export const getAttendanceOverview = async (req, res) => {
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
     const monthEnd   = new Date(now.getFullYear(), now.getMonth()+1, 0, 23,59,59);
 
+    /* MANAGER: scope to their department */
+    const deptFilter = (req.user.role === "MANAGER" && req.user.department)
+      ? { department: req.user.department } : {};
+    const hasFilter  = Object.keys(deptFilter).length > 0;
+
+    /* if dept filter, get user IDs first */
+    let userIdFilter = {};
+    let scopedTotal  = 0;
+    if (hasFilter) {
+      const deptUsers = await prisma.user.findMany({ where: deptFilter, select: { id: true } });
+      const ids = deptUsers.map(u => u.id);
+      userIdFilter = { userId: { in: ids } };
+      scopedTotal  = ids.length;
+    }
+
     const [
       totalUsers,
       todayRecords,
       monthRecords,
       pendingLeaves,
     ] = await Promise.all([
-      prisma.user.count(),
+      hasFilter ? Promise.resolve(scopedTotal) : prisma.user.count(),
       prisma.attendance.findMany({
-        where: { date: { gte: todayStart, lte: todayEnd } },
+        where: { date: { gte: todayStart, lte: todayEnd }, ...userIdFilter },
         select: { dayType: true },
       }),
       prisma.attendance.findMany({
-        where: { date: { gte: monthStart, lte: monthEnd } },
+        where: { date: { gte: monthStart, lte: monthEnd }, ...userIdFilter },
         select: { dayType: true, checkIn: true, checkOut: true },
       }),
-      prisma.leave.count({ where: { status: "PENDING" } }),
+      hasFilter
+        ? prisma.leave.count({ where: { status: "PENDING", user: deptFilter } })
+        : prisma.leave.count({ where: { status: "PENDING" } }),
     ]);
 
     /* today */

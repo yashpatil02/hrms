@@ -9,11 +9,12 @@ import {
 } from "react-icons/fa";
 
 const DEPARTMENTS = ["SQ", "Spiideo", "Annotation", "Vidswap"];
-const ROLES       = ["EMPLOYEE", "HR"];
+const ROLES       = ["EMPLOYEE", "MANAGER", "HR"];
 
 const ROLE_STYLE = {
   ADMIN:    { bg:"bg-purple-100", text:"text-purple-700", icon:<FaUserShield size={11}/> },
   HR:       { bg:"bg-blue-100",   text:"text-blue-700",   icon:<FaUserTie   size={11}/> },
+  MANAGER:  { bg:"bg-amber-100",  text:"text-amber-700",  icon:<FaUserShield size={11}/> },
   EMPLOYEE: { bg:"bg-green-100",  text:"text-green-700",  icon:<FaUsers     size={11}/> },
 };
 
@@ -64,7 +65,7 @@ export default function CreateUser() {
     if (!form.name.trim())  return setError("Full name is required");
     if (!form.email.trim()) return setError("Email is required");
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) return setError("Enter a valid email address");
-    if (form.role === "EMPLOYEE" && !form.department) return setError("Department is required for employees");
+    if (["EMPLOYEE","MANAGER"].includes(form.role) && !form.department) return setError("Department is required for employees and managers");
 
     try {
       setLoading(true);
@@ -217,25 +218,32 @@ export default function CreateUser() {
                   <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
                     Role *
                   </label>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-3 gap-3">
                     {ROLES.map(r => (
                       <button key={r} type="button"
                         onClick={() => setForm({...form, role:r, department: r==="HR" ? "" : form.department})}
-                        className={`flex items-center gap-2.5 px-4 py-3 rounded-xl border-2 transition-all text-sm font-medium ${
+                        className={`flex flex-col items-center gap-1.5 px-3 py-3 rounded-xl border-2 transition-all text-sm font-medium ${
                           form.role === r
                             ? "border-blue-500 bg-blue-50 text-blue-700"
                             : "border-gray-200 bg-white text-gray-600 hover:border-gray-300"
                         }`}>
-                        {r === "HR" ? <FaUserTie size={14}/> : <FaUsers size={14}/>}
-                        {r}
-                        {form.role === r && <FaCheckCircle size={12} className="ml-auto text-blue-500"/>}
+                        <span className="text-base">
+                          {r === "HR" ? <FaUserTie size={16}/> : r === "MANAGER" ? <FaUserShield size={16}/> : <FaUsers size={16}/>}
+                        </span>
+                        <span className="text-xs font-semibold">{r === "MANAGER" ? "Manager" : r}</span>
+                        {form.role === r && <FaCheckCircle size={11} className="text-blue-500"/>}
                       </button>
                     ))}
                   </div>
+                  {form.role === "MANAGER" && (
+                    <p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mt-2">
+                      Manager can view and manage their department's employees, attendance, leaves and documents. No payroll, audit or analytics access.
+                    </p>
+                  )}
                 </div>
 
-                {/* DEPARTMENT (only for EMPLOYEE) */}
-                {form.role === "EMPLOYEE" && (
+                {/* DEPARTMENT (for EMPLOYEE and MANAGER) */}
+                {["EMPLOYEE","MANAGER"].includes(form.role) && (
                   <div>
                     <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
                       Department *

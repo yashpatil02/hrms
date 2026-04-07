@@ -12,7 +12,7 @@ const router = express.Router();
 // GET overview stats (cards)
 router.get(
   "/attendance-overview",
-  auth, role(["ADMIN","HR"]),
+  auth, role(["ADMIN","HR","MANAGER"]),
   getAttendanceOverview
 );
 
@@ -20,7 +20,7 @@ router.get(
 // ?search=&role=&department=&page=&limit=
 router.get(
   "/attendance-report",
-  auth, role(["ADMIN","HR"]),
+  auth, role(["ADMIN","HR","MANAGER"]),
   getAttendanceReport
 );
 
@@ -28,7 +28,7 @@ router.get(
 // ?fromDate=&toDate=&dayType=&page=&limit=
 router.get(
   "/attendance-report/:userId",
-  auth, role(["ADMIN","HR"]),
+  auth, role(["ADMIN","HR","MANAGER"]),
   getUserAttendanceDetail
 );
 

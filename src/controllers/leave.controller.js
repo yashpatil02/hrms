@@ -203,8 +203,13 @@ export const getMyLeaveStats = async (req, res) => {
 ============================================================ */
 export const getPendingLeaves = async (req, res) => {
   try {
+    const where = { status: "PENDING" };
+    if (req.user.role === "MANAGER" && req.user.department) {
+      where.user = { department: req.user.department };
+    }
+
     const leaves = await prisma.leave.findMany({
-      where: { status: "PENDING" },
+      where,
       include: { user: { select: { id:true, name:true, email:true, department:true } } },
       orderBy: { createdAt: "asc" },
     });
@@ -228,12 +233,19 @@ export const getAdvancedLeaves = async (req, res) => {
     const { status, search, page=1, limit=20 } = req.query;
     const where = {};
     if (status && status!=="ALL") where.status = status;
+
+    /* build user filter: search + MANAGER dept restriction */
+    const userFilter = {};
     if (search?.trim()) {
-      where.user = { OR: [
+      userFilter.OR = [
         { name:  { contains: search, mode:"insensitive" } },
         { email: { contains: search, mode:"insensitive" } },
-      ]};
+      ];
     }
+    if (req.user.role === "MANAGER" && req.user.department) {
+      userFilter.department = req.user.department;
+    }
+    if (Object.keys(userFilter).length) where.user = userFilter;
 
     const [leaves, total] = await Promise.all([
       prisma.leave.findMany({

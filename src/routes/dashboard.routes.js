@@ -8,7 +8,7 @@ const router = express.Router();
 router.get(
   "/stats",
   auth,
-  role(["ADMIN", "HR"]),
+  role(["ADMIN", "HR", "MANAGER"]),
   getDashboardStats
 );
 

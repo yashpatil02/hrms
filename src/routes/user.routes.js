@@ -12,11 +12,11 @@ import {
 
 const router = express.Router();
 
-// ADMIN + HR → list all users
-router.get("/",           auth, role(["ADMIN", "HR"]), getUsers);
+// ADMIN + HR + MANAGER → list users (MANAGER sees own dept only)
+router.get("/",           auth, role(["ADMIN", "HR", "MANAGER"]), getUsers);
 
-// ADMIN + HR → single user detail with stats
-router.get("/:id",        auth, role(["ADMIN", "HR"]), getUserDetail);
+// ADMIN + HR + MANAGER → single user detail
+router.get("/:id",        auth, role(["ADMIN", "HR", "MANAGER"]), getUserDetail);
 
 // ADMIN → delete user
 router.delete("/:id",     auth, role(["ADMIN"]),       deleteUser);

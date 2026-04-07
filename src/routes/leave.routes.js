@@ -20,10 +20,10 @@ router.delete("/:id",    auth, cancelLeave);        // NEW — cancel pending le
 router.get("/my",        auth, getMyLeaves);        // ?status=&year=
 router.get("/my-stats",  auth, getMyLeaveStats);    // NEW — leave stats
 
-/* ── ADMIN / HR ── */
-router.get("/pending",   auth, role(["ADMIN","HR"]), getPendingLeaves);
-router.get("/admin",     auth, role(["ADMIN","HR"]), getAdvancedLeaves);
-router.put("/:id/approve", auth, role(["ADMIN","HR"]), approveLeave);
-router.put("/:id/reject",  auth, role(["ADMIN","HR"]), rejectLeave);
+/* ── ADMIN / HR / MANAGER ── (MANAGER filtered to own dept) */
+router.get("/pending",   auth, role(["ADMIN","HR","MANAGER"]), getPendingLeaves);
+router.get("/admin",     auth, role(["ADMIN","HR","MANAGER"]), getAdvancedLeaves);
+router.put("/:id/approve", auth, role(["ADMIN","HR","MANAGER"]), approveLeave);
+router.put("/:id/reject",  auth, role(["ADMIN","HR","MANAGER"]), rejectLeave);
 
 export default router;

@@ -26,17 +26,17 @@ const router = express.Router();
 router.get(
   "/employees",
   auth,
-  role(["ADMIN", "HR"]),
+  role(["ADMIN", "HR", "MANAGER"]),
   getEmployeesWithDocuments
 );
 
 /* ─────────────────────────────────────────────────────────────
-   ADMIN / HR — view documents of any user
+   ADMIN / HR / MANAGER — view documents of any user
 ───────────────────────────────────────────────────────────── */
 router.get(
   "/employee/:employeeId",
   auth,
-  role(["ADMIN", "HR"]),
+  role(["ADMIN", "HR", "MANAGER"]),
   getEmployeeDocuments
 );
 
@@ -55,7 +55,7 @@ router.get(
 router.post(
   "/upload",
   auth,
-  role(["ADMIN", "HR"]),
+  role(["ADMIN", "HR", "MANAGER"]),
   upload.single("file"),
   uploadDocument
 );
@@ -76,17 +76,17 @@ router.post(
 router.post(
   "/request",
   auth,
-  role(["ADMIN", "HR"]),
+  role(["ADMIN", "HR", "MANAGER"]),
   requestDocument
 );
 
 /* ─────────────────────────────────────────────────────────────
-   ADMIN / HR — cancel a pending document request
+   ADMIN / HR / MANAGER — cancel a pending document request
 ───────────────────────────────────────────────────────────── */
 router.delete(
   "/request/:id",
   auth,
-  role(["ADMIN", "HR"]),
+  role(["ADMIN", "HR", "MANAGER"]),
   cancelDocumentRequest
 );
 
