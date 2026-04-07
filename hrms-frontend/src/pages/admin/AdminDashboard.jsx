@@ -13,6 +13,7 @@ import {
   FaUserClock, FaChartLine, FaSync, FaUserShield, FaBolt,
   FaClipboardList, FaFolderOpen, FaHistory, FaCalendarAlt,
   FaUserSlash, FaUserCheck, FaFire, FaBell, FaEye,
+  FaMoneyBillWave, FaFileAlt, FaBuilding,
 } from "react-icons/fa";
 
 /* ============================================================
@@ -283,8 +284,13 @@ const AdminDashboard = () => {
   const activityFeed       = Array.isArray(stats.activityFeed)       ? stats.activityFeed       : [];
   const recentLeaves       = Array.isArray(stats.recentLeaves)       ? stats.recentLeaves       : [];
   const alerts             = Array.isArray(stats.alerts)             ? stats.alerts             : [];
+  const deptAttendance     = Array.isArray(stats.deptAttendance)     ? stats.deptAttendance     : [];
   const today              = stats.today        || { present:0, absent:0, onLeave:0, halfDay:0 };
   const todayAnalysts      = stats.todayAnalysts || { present:0, absent:0, halfDay:0 };
+  const payroll            = stats.payroll       || { totalNetSalary:0, totalGrossSalary:0, processedCount:0 };
+  const fmtINR = (n) => n >= 100000
+    ? `₹${(n/100000).toFixed(1)}L`
+    : n >= 1000 ? `₹${(n/1000).toFixed(1)}K` : `₹${n}`;
 
   const attendanceColor =
     (stats.attendanceRate||0)>=80 ? C.green :
@@ -437,6 +443,47 @@ const AdminDashboard = () => {
             </div>
           </div>
 
+          {/* KPI ROW 3 — Payroll + Documents */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <KPICard title="Net Payroll"       value={fmtINR(payroll.totalNetSalary)}     icon={<FaMoneyBillWave/>} color={C.green}  iconBg="bg-green-100"  iconColor="text-green-600"  sub={`${payroll.processedCount} processed this month`} onClick={()=>navigate("/admin/payroll")}/>
+            <KPICard title="Gross Payroll"     value={fmtINR(payroll.totalGrossSalary)}   icon={<FaMoneyBillWave/>} color={C.teal}   iconBg="bg-teal-100"   iconColor="text-teal-600"   sub="This month (approved/paid)"                       onClick={()=>navigate("/admin/payroll")}/>
+            <KPICard title="Doc Requests"      value={stats.pendingDocRequests||0}         icon={<FaFileAlt/>}       color={(stats.pendingDocRequests||0)>0?C.amber:C.green} iconBg={(stats.pendingDocRequests||0)>0?"bg-amber-100":"bg-green-100"} iconColor={(stats.pendingDocRequests||0)>0?"text-amber-600":"text-green-600"} sub="Pending from employees" onClick={()=>navigate("/admin/documents")} pulse={(stats.pendingDocRequests||0)>0}/>
+            <KPICard title="Total Documents"   value={stats.totalDocuments||0}             icon={<FaFolderOpen/>}    color={C.indigo} iconBg="bg-indigo-100" iconColor="text-indigo-600" sub="All employee files"                                onClick={()=>navigate("/admin/documents")}/>
+          </div>
+
+          {/* DEPARTMENT ATTENDANCE */}
+          {deptAttendance.length > 0 && (
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 mb-4">
+              <div className="flex items-center gap-2 mb-4">
+                <FaBuilding className="text-indigo-500"/>
+                <h2 className="font-semibold text-gray-700">Department Attendance Today</h2>
+                <span className="ml-auto text-xs text-gray-400">Present / Total</span>
+              </div>
+              <div className="space-y-3">
+                {deptAttendance.map(d => (
+                  <div key={d.dept} className="flex items-center gap-4">
+                    <div className="w-28 text-sm font-medium text-gray-600 truncate flex-shrink-0">{d.dept}</div>
+                    <div className="flex-1">
+                      <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                        <div
+                          className="h-full rounded-full transition-all"
+                          style={{
+                            width: `${d.rate}%`,
+                            background: d.rate >= 80 ? C.green : d.rate >= 60 ? C.teal : d.rate >= 40 ? C.amber : C.red,
+                          }}
+                        />
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <span className="text-xs text-gray-500">{d.present}/{d.total}</span>
+                      <span className={`text-xs font-bold w-10 text-right ${d.rate>=80?"text-green-600":d.rate>=60?"text-teal-600":d.rate>=40?"text-amber-600":"text-red-600"}`}>{d.rate}%</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* QUICK ACTIONS */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 mb-4">
             <div className="flex items-center gap-2 mb-4">
@@ -450,7 +497,7 @@ const AdminDashboard = () => {
                 { label:"Manage Users",     sub:`${stats.totalUsers||0} total`,        path:"/users",                     icon:<FaUsers/>,        color:"text-indigo-600", bg:"bg-indigo-50", border:"border-indigo-200" },
                 { label:"Monthly Report",   sub:"Summary",                             path:"/admin/monthly-attendance",  icon:<FaClipboardList/>,color:"text-teal-600",   bg:"bg-teal-50",   border:"border-teal-200"   },
                 { label:"Audit Trail",      sub:"Changes",                             path:"/admin/audit",               icon:<FaHistory/>,      color:"text-purple-600", bg:"bg-purple-50", border:"border-purple-200" },
-                { label:"Documents",        sub:"Employee files",                      path:"/admin/documents",           icon:<FaFolderOpen/>,   color:"text-green-600",  bg:"bg-green-50",  border:"border-green-200"  },
+                { label:"Documents",        sub:`${stats.pendingDocRequests||0} pending`, path:"/admin/documents", icon:<FaFolderOpen/>, color:"text-green-600", bg:"bg-green-50", border:"border-green-200" },
               ].map(a=>(
                 <button key={a.label} onClick={()=>navigate(a.path)}
                   className={`flex flex-col items-center text-center gap-2 p-4 rounded-xl border ${a.bg} ${a.border} hover:shadow-md transition-all hover:-translate-y-0.5 w-full`}>

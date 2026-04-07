@@ -25,17 +25,22 @@ export const getEmployeeDashboard = async (req, res) => {
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
     const monthEnd   = new Date(now.getFullYear(), now.getMonth()+1, 0, 23,59,59);
 
+    const prevMonthStart = new Date(now.getFullYear(), now.getMonth()-1, 1);
+    const prevMonthEnd   = new Date(now.getFullYear(), now.getMonth(), 0, 23,59,59);
+
     const [
-      user, todayAtt, monthAtt,
+      user, todayAtt, monthAtt, prevMonthAtt,
       pendingLeaves, approvedLeaves, totalLeaves,
       recentLeaves, upcomingLeaves, documentCount, lastAtt,
+      pendingDocRequests, latestPayroll,
     ] = await Promise.all([
       prisma.user.findUnique({
         where: { id: userId },
-        select: { id:true, name:true, email:true, role:true, department:true, weeklyOff:true, weekoffBalance:true, createdAt:true },
+        select: { id:true, name:true, email:true, role:true, department:true, designation:true, weeklyOff:true, weekoffBalance:true, createdAt:true, avatar:true },
       }),
       prisma.attendance.findFirst({ where:{ userId, date:{ gte:todayStart, lte:todayEnd } } }),
       prisma.attendance.findMany({ where:{ userId, date:{ gte:monthStart, lte:monthEnd } }, orderBy:{ date:"asc" } }),
+      prisma.attendance.findMany({ where:{ userId, date:{ gte:prevMonthStart, lte:prevMonthEnd } }, select:{ dayType:true } }),
       prisma.leave.count({ where:{ userId, status:"PENDING" } }),
       prisma.leave.count({ where:{ userId, status:"APPROVED" } }),
       prisma.leave.count({ where:{ userId } }),
@@ -50,6 +55,12 @@ export const getEmployeeDashboard = async (req, res) => {
       }),
       prisma.employeeDocument.count({ where:{ employeeId:userId } }),
       prisma.attendance.findMany({ where:{ userId }, orderBy:{ date:"desc" }, take:60, select:{ dayType:true } }),
+      prisma.documentRequest.count({ where:{ userId, status:"PENDING" } }),
+      prisma.payroll.findFirst({
+        where: { userId, status: { in: ["APPROVED","PAID"] } },
+        orderBy: [{ year:"desc" }, { month:"desc" }],
+        select: { id:true, month:true, year:true, netSalary:true, grossSalary:true, totalDeductions:true, status:true },
+      }),
     ]);
 
     /* month summary */
@@ -89,6 +100,11 @@ export const getEmployeeDashboard = async (req, res) => {
       trend.push({ day:d.toLocaleDateString("en-IN",{weekday:"short"}), date:d.toISOString().split("T")[0], status:rec?.dayType||null, hours:rec?calcHours(rec.checkIn,rec.checkOut):null });
     }
 
+    /* prev month comparison */
+    const prevPresent = prevMonthAtt.filter(a => ["FULL","HALF","WEEKOFF_PRESENT"].includes(a.dayType)).length;
+    const prevRate    = Math.min(100, Math.round((prevPresent / 22) * 100));
+    const attendanceChange = attendanceRate - prevRate;
+
     const monthlySummary = { ...s, attendanceRate, avgHours, presentDays };
     const monthlyAttendance = monthAtt.map(a => ({
       date:a.date.toISOString().split("T")[0], dayType:a.dayType, checkIn:a.checkIn, checkOut:a.checkOut, hours:calcHours(a.checkIn,a.checkOut),
@@ -103,6 +119,9 @@ export const getEmployeeDashboard = async (req, res) => {
       monthlyAttendance, trend,
       pendingLeaves, approvedLeaves, totalLeaves,
       recentLeaves, upcomingLeaves, documentCount,
+      pendingDocRequests,
+      latestPayroll,
+      attendanceChange,
     });
   } catch (err) {
     console.error("getEmployeeDashboard:", err);

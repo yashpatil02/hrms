@@ -1,6 +1,6 @@
 import prisma from "../../prisma/client.js";
 
-export const getDashboardStats = async (req, res) => {
+export const getDashboardStats = async (_req, res) => {
   try {
     const now = new Date();
 
@@ -215,6 +215,39 @@ export const getDashboardStats = async (req, res) => {
     })).sort((a, b) => b.absences - a.absences);
 
     /* ================================
+       PAYROLL SUMMARY — THIS MONTH
+    ================================ */
+    const [payrollStats, pendingDocRequests, totalDocuments] = await Promise.all([
+      prisma.payroll.aggregate({
+        where: { month: now.getMonth()+1, year: now.getFullYear(), status: { in: ["APPROVED","PAID"] } },
+        _sum: { netSalary: true, grossSalary: true },
+        _count: { id: true },
+      }),
+      prisma.documentRequest.count({ where: { status: "PENDING" } }),
+      prisma.employeeDocument.count(),
+    ]);
+
+    /* ================================
+       DEPARTMENT-WISE ATTENDANCE TODAY
+    ================================ */
+    const usersWithDept = await prisma.user.findMany({
+      where: { role: "EMPLOYEE" },
+      select: { id: true, department: true },
+    });
+    const todayAttIds = new Set(todayAttendance.filter(a=>["FULL","HALF","WEEKOFF_PRESENT"].includes(a.dayType)).map(a=>a.userId));
+    const deptMap = {};
+    usersWithDept.forEach(u => {
+      const dept = u.department || "Other";
+      if (!deptMap[dept]) deptMap[dept] = { total: 0, present: 0 };
+      deptMap[dept].total++;
+      if (todayAttIds.has(u.id)) deptMap[dept].present++;
+    });
+    const deptAttendance = Object.entries(deptMap).map(([dept, d]) => ({
+      dept, total: d.total, present: d.present,
+      rate: d.total === 0 ? 0 : Math.round((d.present / d.total) * 100),
+    })).sort((a,b) => b.rate - a.rate);
+
+    /* ================================
        RECENT 5 PENDING LEAVES
     ================================ */
     const recentLeavesList = await prisma.leave.findMany({
@@ -285,6 +318,17 @@ export const getDashboardStats = async (req, res) => {
       heatmapData,
       topAbsentEmployees,
       activityFeed,
+      deptAttendance,
+
+      payroll: {
+        totalNetSalary:   payrollStats._sum.netSalary   || 0,
+        totalGrossSalary: payrollStats._sum.grossSalary || 0,
+        processedCount:   payrollStats._count.id        || 0,
+        month:            now.getMonth() + 1,
+        year:             now.getFullYear(),
+      },
+      pendingDocRequests,
+      totalDocuments,
 
       recentLeaves: recentLeavesList.map(l => ({
         id: l.id, name: l.user.name, email: l.user.email,

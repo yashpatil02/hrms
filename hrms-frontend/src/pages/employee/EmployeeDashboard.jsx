@@ -10,7 +10,8 @@ import {
   FaFireAlt, FaCheckCircle, FaTimesCircle, FaClock, FaLeaf,
   FaArrowRight, FaSyncAlt, FaFolderOpen, FaChartBar,
   FaSun, FaMoon, FaCloudSun, FaTrophy, FaExclamationTriangle,
-  FaBell, FaCalendarAlt, FaUsers,
+  FaBell, FaCalendarAlt, FaUsers, FaMoneyBillWave, FaFileAlt,
+  FaArrowUp, FaArrowDown,
 } from "react-icons/fa";
 
 /* ============================================================
@@ -252,10 +253,21 @@ const EmployeeDashboard = () => {
                 <p className="text-green-200 text-[10px] mt-0.5">day streak 🔥</p>
               </div>
             )}
-            {/* RATE */}
+            {/* RATE + TREND */}
             <div className="bg-white/15 border border-white/20 rounded-xl px-4 py-2.5 text-center">
               <div className="text-2xl font-bold">{s?.attendanceRate||0}%</div>
               <p className="text-green-200 text-[10px] mt-0.5">this month</p>
+              {data.attendanceChange !== 0 && data.attendanceChange !== undefined && (
+                <div className={`flex items-center justify-center gap-0.5 mt-1 text-[10px] font-semibold ${
+                  data.attendanceChange > 0 ? "text-green-300" : "text-red-300"
+                }`}>
+                  {data.attendanceChange > 0
+                    ? <FaArrowUp size={8}/>
+                    : <FaArrowDown size={8}/>
+                  }
+                  {Math.abs(data.attendanceChange)}% vs last month
+                </div>
+              )}
             </div>
             {/* REFRESH */}
             <button onClick={loadDashboard}
@@ -300,6 +312,27 @@ const EmployeeDashboard = () => {
         <StatCard label="Paid Leave"  value={s?.paidLeave||0}         icon={<FaLeaf/>}          color="text-blue-600"   bg="bg-blue-50"   sub="This month"/>
         <StatCard label="Documents"   value={data.documentCount||0}   icon={<FaFolderOpen/>}    color="text-pink-600"   bg="bg-pink-50"   sub="Uploaded"/>
       </div>
+
+      {/* ============================
+          PENDING DOC REQUESTS ALERT
+      ============================ */}
+      {(data.pendingDocRequests||0) > 0 && (
+        <div className="flex items-center gap-3 bg-amber-50 border border-amber-200 rounded-2xl px-5 py-4 mb-6">
+          <div className="w-9 h-9 bg-amber-100 rounded-xl flex items-center justify-center flex-shrink-0">
+            <FaFileAlt className="text-amber-600" size={16}/>
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-amber-800">
+              {data.pendingDocRequests} document {data.pendingDocRequests === 1 ? "request" : "requests"} pending
+            </p>
+            <p className="text-xs text-amber-600 mt-0.5">HR has requested documents from you — please upload them.</p>
+          </div>
+          <button onClick={()=>navigate("/my-documents")}
+            className="flex items-center gap-1.5 bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-xl text-xs font-semibold transition-all flex-shrink-0">
+            Upload Now <FaArrowRight size={9}/>
+          </button>
+        </div>
+      )}
 
       {/* ============================
           TODAY + WEEK + QUICK ACTIONS
@@ -466,6 +499,44 @@ const EmployeeDashboard = () => {
           </div>
         </div>
       ) : null}
+
+      {/* ============================
+          LATEST PAYSLIP
+      ============================ */}
+      {data.latestPayroll && (
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <FaMoneyBillWave className="text-green-500"/>
+              <h3 className="font-semibold text-gray-700 text-sm">Latest Payslip</h3>
+              <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ml-1 ${
+                data.latestPayroll.status === "PAID" ? "bg-green-100 text-green-700" : "bg-blue-100 text-blue-700"
+              }`}>{data.latestPayroll.status}</span>
+            </div>
+            <button onClick={()=>navigate("/my-payslips")}
+              className="text-xs text-blue-600 hover:underline flex items-center gap-1">
+              View all <FaArrowRight size={9}/>
+            </button>
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            <div className="bg-green-50 rounded-xl p-3 text-center">
+              <p className="text-[10px] text-gray-400 mb-1">Net Salary</p>
+              <p className="text-lg font-bold text-green-700">₹{(data.latestPayroll.netSalary||0).toLocaleString("en-IN")}</p>
+            </div>
+            <div className="bg-blue-50 rounded-xl p-3 text-center">
+              <p className="text-[10px] text-gray-400 mb-1">Gross</p>
+              <p className="text-lg font-bold text-blue-700">₹{(data.latestPayroll.grossSalary||0).toLocaleString("en-IN")}</p>
+            </div>
+            <div className="bg-red-50 rounded-xl p-3 text-center">
+              <p className="text-[10px] text-gray-400 mb-1">Deductions</p>
+              <p className="text-lg font-bold text-red-600">₹{(data.latestPayroll.totalDeductions||0).toLocaleString("en-IN")}</p>
+            </div>
+          </div>
+          <p className="text-[11px] text-gray-400 mt-3 text-right">
+            {["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][data.latestPayroll.month-1]} {data.latestPayroll.year}
+          </p>
+        </div>
+      )}
 
       {/* ============================
           MARK ATTENDANCE CTA
