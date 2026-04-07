@@ -30,11 +30,14 @@ model User {
   documents   EmployeeDocument[]
   notifications Notification[]
 
-  uploadedDocuments EmployeeDocument[] @relation("UploadedByAdmin")
-  attendanceAudits  AttendanceAudit[]  @relation("AdminAudit")
+  uploadedDocuments  EmployeeDocument[] @relation("UploadedByAdmin")
+  attendanceAudits   AttendanceAudit[]  @relation("AdminAudit")
 
-  salaryStructure   SalaryStructure?
-  payrolls          Payroll[]
+  salaryStructure    SalaryStructure?
+  payrolls           Payroll[]
+
+  documentRequests   DocumentRequest[]  @relation("DocRequests")
+  requestedDocuments DocumentRequest[]  @relation("DocRequestedBy")
 }
 
 model Attendance {
@@ -208,6 +211,23 @@ model EmployeeDocument {
   @@index([employeeId])
   @@index([uploadedBy])
   @@index([createdAt])
+}
+
+model DocumentRequest {
+  id           Int      @id @default(autoincrement())
+  userId       Int
+  requestedBy  Int
+  documentType String
+  message      String?
+  status       String   @default("PENDING")
+  createdAt    DateTime @default(now())
+  fulfilledAt  DateTime?
+
+  user            User @relation("DocRequests",    fields: [userId],      references: [id])
+  requestedByUser User @relation("DocRequestedBy", fields: [requestedBy], references: [id])
+
+  @@index([userId])
+  @@index([status])
 }
 
 model Notification {
