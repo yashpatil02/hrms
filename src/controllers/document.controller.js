@@ -1,4 +1,5 @@
 import { PrismaClient } from "@prisma/client";
+import { Readable } from "stream";
 import { createNotification } from "../utils/createNotification.js";
 import { sendDocumentRequestEmail } from "../utils/mailer.js";
 import cloudinary from "../utils/cloudinary.js";
@@ -302,7 +303,7 @@ export const downloadDocument = async (req, res) => {
     res.setHeader("Content-Type", document.mimeType);
     res.setHeader("Content-Disposition", `attachment; filename="${document.fileName}"`);
     res.setHeader("Cache-Control", "no-store");
-    response.body.pipe(res);
+    Readable.fromWeb(response.body).pipe(res);
   } catch (err) {
     console.error("downloadDocument error:", err);
     res.status(500).json({ msg: "Download failed" });
@@ -328,7 +329,7 @@ export const previewDocument = async (req, res) => {
     res.setHeader("Content-Type", document.mimeType);
     res.setHeader("Content-Disposition", `inline; filename="${document.fileName}"`);
     res.setHeader("Cache-Control", "no-store");
-    response.body.pipe(res);
+    Readable.fromWeb(response.body).pipe(res);
   } catch (err) {
     console.error("previewDocument error:", err);
     res.status(500).json({ msg: "Preview failed" });
