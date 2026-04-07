@@ -6,22 +6,20 @@ import cloudinary from "../utils/cloudinary.js";
 const prisma = new PrismaClient();
 
 /* ─── helper: upload buffer to Cloudinary ─── */
-const uploadToCloudinary = (buffer, mimetype, originalname) =>
+const uploadToCloudinary = (buffer, mimetype) =>
   new Promise((resolve, reject) => {
+    if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
+      return reject(new Error("Cloudinary env vars not configured (CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET)"));
+    }
     const resourceType = mimetype.includes("pdf") ? "raw" : "image";
-    const upload = cloudinary.uploader.upload_stream(
-      {
-        folder:        "employee-documents",
-        resource_type: resourceType,
-        use_filename:  false,
-        unique_filename: true,
-      },
+    const stream = cloudinary.uploader.upload_stream(
+      { folder: "employee-documents", resource_type: resourceType, unique_filename: true },
       (err, result) => {
         if (err) return reject(err);
         resolve(result);
       }
     );
-    upload.end(buffer);
+    stream.end(buffer);
   });
 
 /* ─────────────────────────────────────────────────────────────
@@ -137,7 +135,7 @@ export const uploadDocument = async (req, res) => {
     if (!req.file)
       return res.status(400).json({ msg: "File required" });
 
-    const result = await uploadToCloudinary(req.file.buffer, req.file.mimetype, req.file.originalname);
+    const result = await uploadToCloudinary(req.file.buffer, req.file.mimetype);
 
     const document = await prisma.employeeDocument.create({
       data: {
@@ -164,8 +162,8 @@ export const uploadDocument = async (req, res) => {
 
     res.json({ msg: "Document uploaded successfully", document });
   } catch (err) {
-    console.error("uploadDocument error:", err);
-    res.status(500).json({ msg: "Document upload failed" });
+    console.error("uploadDocument error:", err?.message || err);
+    res.status(500).json({ msg: err?.message?.includes("Cloudinary") ? "File storage not configured on server" : "Document upload failed" });
   }
 };
 
@@ -182,7 +180,7 @@ export const selfUploadDocument = async (req, res) => {
     if (!req.file)
       return res.status(400).json({ msg: "File required" });
 
-    const result = await uploadToCloudinary(req.file.buffer, req.file.mimetype, req.file.originalname);
+    const result = await uploadToCloudinary(req.file.buffer, req.file.mimetype);
 
     const document = await prisma.employeeDocument.create({
       data: {
