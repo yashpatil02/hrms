@@ -34,6 +34,7 @@ import EmployeeProfile from "./pages/EmployeeProfile";
 import HolidayManagement from "./pages/HolidayManagement";
 import HolidayCalendar from "./pages/HolidayCalendar";
 import HRAnalytics from "./pages/HRAnalytics";
+import MyDocuments from "./pages/employee/MyDocuments";
 
 function App() {
   return (
@@ -303,6 +304,18 @@ function App() {
           element={
             <ProtectedRoute>
               <MyPayslips />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* ===========================
+            MY DOCUMENTS (Employee)
+        =========================== */}
+        <Route
+          path="/my-documents"
+          element={
+            <ProtectedRoute>
+              <MyDocuments />
             </ProtectedRoute>
           }
         />

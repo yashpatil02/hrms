@@ -7,7 +7,7 @@ import {
   FaDownload, FaCloudUploadAlt, FaEye, FaTrash, FaSearch,
   FaTimes, FaArrowLeft, FaSyncAlt, FaCheckCircle,
   FaExclamationTriangle, FaThLarge, FaList, FaEdit,
-  FaCalendarAlt, FaFileAlt, FaChevronDown, FaChevronUp,
+  FaCalendarAlt, FaFileAlt, FaChevronDown, FaChevronUp, FaBell,
 } from "react-icons/fa";
 
 /* ============================================================
@@ -269,6 +269,14 @@ export default function EmployeeDocuments() {
   const [selected,    setSelected]    = useState([]);
   const [bulkMode,    setBulkMode]    = useState(false);
 
+  /* DOCUMENT REQUESTS */
+  const [requests,       setRequests]       = useState([]);
+  const [showRequestForm,setShowRequestForm]= useState(false);
+  const [reqDocType,     setReqDocType]     = useState("");
+  const [reqCustomType,  setReqCustomType]  = useState("");
+  const [reqMessage,     setReqMessage]     = useState("");
+  const [sendingRequest, setSendingRequest] = useState(false);
+
   /* TOAST */
   const showToast = useCallback((type, msg) => {
     setToast({ type, msg });
@@ -283,11 +291,18 @@ export default function EmployeeDocuments() {
         api.get(`/documents/employee/${employeeId}`),
         api.get("/documents/employees").catch(()=>({ data:[] })),
       ]);
-      const docs = Array.isArray(docsRes.data) ? docsRes.data : [];
+      // Backend returns { user, documents, requests }
+      const payload = docsRes.data;
+      const docs = Array.isArray(payload) ? payload : (payload?.documents || []);
       setDocuments(docs);
-      const emps = Array.isArray(empsRes.data) ? empsRes.data : [];
-      const emp  = emps.find(e => String(e.id)===String(employeeId));
-      if (emp) setEmpInfo(emp);
+      setRequests(payload?.requests || []);
+      if (payload?.user) {
+        setEmpInfo(payload.user);
+      } else {
+        const emps = Array.isArray(empsRes.data) ? empsRes.data : [];
+        const emp  = emps.find(e => String(e.id)===String(employeeId));
+        if (emp) setEmpInfo(emp);
+      }
     } catch { showToast("error","Failed to load documents"); }
     finally { setLoading(false); }
   }, [employeeId, showToast]);
@@ -380,6 +395,34 @@ export default function EmployeeDocuments() {
     }
     setDocuments(prev => prev.map(d => d.id===renameDoc.id ? {...d, documentType:newType} : d));
     setRenameDoc(null);
+  };
+
+  /* ── SEND DOCUMENT REQUEST ── */
+  const sendDocumentRequest = async () => {
+    const ft = reqDocType==="Other" ? reqCustomType.trim() : reqDocType;
+    if (!ft) { showToast("warning","Please select a document type"); return; }
+    try {
+      setSendingRequest(true);
+      await api.post("/documents/request", {
+        userId:       Number(employeeId),
+        documentType: ft,
+        message:      reqMessage.trim() || undefined,
+      });
+      showToast("success","Document request sent — employee will be notified via email");
+      setShowRequestForm(false);
+      setReqDocType(""); setReqCustomType(""); setReqMessage("");
+      fetchDocuments();
+    } catch { showToast("error","Failed to send request"); }
+    finally { setSendingRequest(false); }
+  };
+
+  /* ── CANCEL DOCUMENT REQUEST ── */
+  const cancelRequest = async (id) => {
+    try {
+      await api.delete(`/documents/request/${id}`);
+      showToast("success","Request cancelled");
+      fetchDocuments();
+    } catch { showToast("error","Cancel failed"); }
   };
 
   /* ── COMPUTED ── */
@@ -477,12 +520,83 @@ export default function EmployeeDocuments() {
               className="flex items-center gap-2 text-sm bg-white border border-gray-200 hover:bg-gray-50 text-gray-600 px-4 py-2 rounded-xl shadow-sm transition-all">
               <FaSyncAlt size={11}/> Refresh
             </button>
-            <button onClick={()=>setShowUpload(!showUpload)}
+            <button onClick={()=>{ setShowRequestForm(!showRequestForm); setShowUpload(false); }}
+              className={`flex items-center gap-2 text-sm px-4 py-2 rounded-xl font-medium shadow-sm transition-all ${
+                showRequestForm
+                  ? "bg-amber-100 border border-amber-300 text-amber-700"
+                  : "bg-amber-500 hover:bg-amber-600 text-white"
+              }`}>
+              <FaBell size={11}/> {showRequestForm ? "Hide Request" : "Request Doc"}
+            </button>
+            <button onClick={()=>{ setShowUpload(!showUpload); setShowRequestForm(false); }}
               className="flex items-center gap-2 text-sm bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl font-medium shadow-sm shadow-blue-200 transition-all">
               <FaUpload size={11}/> {showUpload?"Hide Upload":"Upload"}
             </button>
           </div>
         </div>
+
+        {/* ── REQUEST DOCUMENT FORM ── */}
+        {showRequestForm && (
+          <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5 mb-5">
+            <h2 className="font-semibold text-amber-800 text-sm mb-4 flex items-center gap-2">
+              <FaBell className="text-amber-500"/> Request Document from {empInfo?.name || "Employee"}
+            </h2>
+            <div className="mb-3">
+              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Document Type *</label>
+              <div className="flex flex-wrap gap-2">
+                {DOC_TYPES.map(t=>(
+                  <button key={t} onClick={()=>setReqDocType(t)}
+                    className={`text-xs px-3 py-1.5 rounded-full border-2 font-medium transition-all ${
+                      reqDocType===t
+                        ? "bg-amber-500 text-white border-amber-500"
+                        : "border-gray-200 text-gray-600 hover:border-amber-300 bg-white"
+                    }`}>{t}</button>
+                ))}
+              </div>
+              {reqDocType==="Other" && (
+                <input value={reqCustomType} onChange={e=>setReqCustomType(e.target.value)}
+                  placeholder="Enter document type..."
+                  className="mt-2 w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400/30"/>
+              )}
+            </div>
+            <div className="mb-4">
+              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Message (optional)</label>
+              <textarea value={reqMessage} onChange={e=>setReqMessage(e.target.value)}
+                placeholder="Add a note for the employee..."
+                rows={2}
+                className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400/30 resize-none"/>
+            </div>
+            <button onClick={sendDocumentRequest} disabled={sendingRequest}
+              className="flex items-center gap-2 text-sm bg-amber-500 hover:bg-amber-600 disabled:bg-gray-300 text-white px-5 py-2.5 rounded-xl font-medium transition-all">
+              {sendingRequest ? "Sending..." : <><FaBell size={11}/> Send Request & Email</>}
+            </button>
+          </div>
+        )}
+
+        {/* ── PENDING REQUESTS DISPLAY ── */}
+        {requests.length > 0 && (
+          <div className="mb-5">
+            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">
+              Pending Requests ({requests.filter(r=>r.status==="PENDING").length})
+            </p>
+            <div className="space-y-2">
+              {requests.filter(r=>r.status==="PENDING").map(req=>{
+                const tc = TYPE_CLR(req.documentType);
+                return (
+                  <div key={req.id} className="flex items-center gap-3 bg-amber-50 border border-amber-100 rounded-xl px-4 py-3 flex-wrap">
+                    <span className={`text-xs px-2.5 py-1 rounded-full font-semibold ${tc.bg} ${tc.text}`}>{req.documentType}</span>
+                    <span className="text-xs text-gray-500">Requested by {req.requestedByUser?.name}</span>
+                    {req.message && <span className="text-xs text-gray-400 italic">"{req.message}"</span>}
+                    <button onClick={()=>cancelRequest(req.id)}
+                      className="ml-auto text-xs text-red-500 hover:text-red-700 hover:underline">
+                      Cancel
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* ── STAT CARDS ── */}
         {!loading && (

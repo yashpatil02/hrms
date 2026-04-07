@@ -1,339 +1,333 @@
 import { PrismaClient } from "@prisma/client";
 import path from "path";
 import fs from "fs";
+import { createNotification } from "../utils/createNotification.js";
+import { sendDocumentRequestEmail } from "../utils/mailer.js";
 
 const prisma = new PrismaClient();
 
-/*
-========================================
-GET ALL EMPLOYEES WITH DOCUMENT COUNT
-ACCESS: ADMIN
-========================================
-*/
+/* ─────────────────────────────────────────────────────────────
+   GET ALL USERS WITH DOCUMENT COUNT  (Admin / HR)
+   Returns ALL roles: EMPLOYEE, HR, ADMIN
+───────────────────────────────────────────────────────────── */
 export const getEmployeesWithDocuments = async (req, res) => {
   try {
-
-    const employees = await prisma.user.findMany({
-      where: {
-        role: "EMPLOYEE",
-      },
+    const users = await prisma.user.findMany({
       select: {
         id: true,
         name: true,
         email: true,
-        documents: {
-          select: {
-            id: true,
-          },
+        role: true,
+        department: true,
+        designation: true,
+        avatar: true,
+        documents: { select: { id: true } },
+        documentRequests: {
+          where:  { status: "PENDING" },
+          select: { id: true },
         },
       },
-      orderBy: {
-        name: "asc",
-      },
+      orderBy: { name: "asc" },
     });
 
-    const result = employees.map((emp) => ({
-      id: emp.id,
-      name: emp.name,
-      email: emp.email,
-      documentCount: emp.documents.length,
-    }));
-
-    res.json(result);
-
-  } catch (error) {
-
-    console.error("Get employees documents error:", error);
-
-    res.status(500).json({
-      msg: "Failed to fetch employees",
-    });
-
+    res.json(users.map((u) => ({
+      id:              u.id,
+      name:            u.name,
+      email:           u.email,
+      role:            u.role,
+      department:      u.department,
+      designation:     u.designation,
+      avatar:          u.avatar,
+      documentCount:   u.documents.length,
+      pendingRequests: u.documentRequests.length,
+    })));
+  } catch (err) {
+    console.error("getEmployeesWithDocuments error:", err);
+    res.status(500).json({ msg: "Failed to fetch users" });
   }
 };
 
-
-/*
-========================================
-GET DOCUMENTS OF SPECIFIC EMPLOYEE
-ACCESS: ADMIN
-========================================
-*/
+/* ─────────────────────────────────────────────────────────────
+   GET DOCUMENTS OF A SPECIFIC USER  (Admin / HR)
+───────────────────────────────────────────────────────────── */
 export const getEmployeeDocuments = async (req, res) => {
-
   try {
+    const employeeId = Number(req.params.employeeId);
 
-    const { employeeId } = req.params;
+    const [documents, requests, user] = await Promise.all([
+      prisma.employeeDocument.findMany({
+        where:   { employeeId },
+        orderBy: { createdAt: "desc" },
+        include: { admin: { select: { id: true, name: true, role: true } } },
+      }),
+      prisma.documentRequest.findMany({
+        where:   { userId: employeeId },
+        orderBy: { createdAt: "desc" },
+        include: { requestedByUser: { select: { id: true, name: true } } },
+      }),
+      prisma.user.findUnique({
+        where:  { id: employeeId },
+        select: { id: true, name: true, email: true, role: true, department: true, designation: true, avatar: true },
+      }),
+    ]);
 
-    const documents = await prisma.employeeDocument.findMany({
+    if (!user) return res.status(404).json({ msg: "User not found" });
 
-      where: {
-        employeeId: Number(employeeId),
-      },
-
-      orderBy: {
-        createdAt: "desc",
-      },
-
-      select: {
-        id: true,
-        documentType: true,
-        fileName: true,
-        fileSize: true,
-        mimeType: true,
-        createdAt: true,
-      },
-
-    });
-
-    res.json(documents);
-
-  } catch (error) {
-
-    console.error("Get employee documents error:", error);
-
-    res.status(500).json({
-      msg: "Failed to fetch documents",
-    });
-
+    res.json({ user, documents, requests });
+  } catch (err) {
+    console.error("getEmployeeDocuments error:", err);
+    res.status(500).json({ msg: "Failed to fetch documents" });
   }
-
 };
 
-
-/*
-========================================
-UPLOAD DOCUMENT
-ACCESS: ADMIN, HR
-========================================
-*/
-export const uploadDocument = async (req, res) => {
-
+/* ─────────────────────────────────────────────────────────────
+   GET MY DOCUMENTS  (Employee — own documents + pending requests)
+───────────────────────────────────────────────────────────── */
+export const getMyDocuments = async (req, res) => {
   try {
+    const userId = req.user.id;
 
+    const [documents, requests] = await Promise.all([
+      prisma.employeeDocument.findMany({
+        where:   { employeeId: userId },
+        orderBy: { createdAt: "desc" },
+        include: { admin: { select: { id: true, name: true, role: true } } },
+      }),
+      prisma.documentRequest.findMany({
+        where:   { userId, status: "PENDING" },
+        orderBy: { createdAt: "desc" },
+        include: { requestedByUser: { select: { id: true, name: true } } },
+      }),
+    ]);
+
+    res.json({ documents, requests });
+  } catch (err) {
+    console.error("getMyDocuments error:", err);
+    res.status(500).json({ msg: "Failed to fetch your documents" });
+  }
+};
+
+/* ─────────────────────────────────────────────────────────────
+   UPLOAD DOCUMENT  (Admin/HR — uploads for any user)
+───────────────────────────────────────────────────────────── */
+export const uploadDocument = async (req, res) => {
+  try {
     const { employeeId, documentType } = req.body;
-
     const uploadedBy = req.user.id;
 
-    if (!employeeId || !documentType) {
-
-      return res.status(400).json({
-        msg: "employeeId and documentType required",
-      });
-
-    }
-
-    if (!req.file) {
-
-      return res.status(400).json({
-        msg: "File required",
-      });
-
-    }
+    if (!employeeId || !documentType)
+      return res.status(400).json({ msg: "employeeId and documentType required" });
+    if (!req.file)
+      return res.status(400).json({ msg: "File required" });
 
     const document = await prisma.employeeDocument.create({
-
       data: {
-
         employeeId: Number(employeeId),
-
         uploadedBy,
-
         documentType,
-
         fileName: req.file.originalname,
-
-        fileUrl: req.file.filename,
-
+        fileUrl:  req.file.filename,
         mimeType: req.file.mimetype,
-
         fileSize: req.file.size,
-
       },
-
     });
 
-    res.json({
-      msg: "Document uploaded successfully",
-      document,
+    await createNotification({
+      userId:      Number(employeeId),
+      title:       "Document Added to Your Profile",
+      message:     `A "${documentType}" has been added to your profile by HR/Admin.`,
+      type:        "INFO",
+      entity:      "DOCUMENT",
+      entityId:    null,
+      socketEvent: "notification:new",
     });
 
-  } catch (error) {
-
-    console.error("Upload document error:", error);
-
-    res.status(500).json({
-      msg: "Document upload failed",
-    });
-
+    res.json({ msg: "Document uploaded successfully", document });
+  } catch (err) {
+    console.error("uploadDocument error:", err);
+    res.status(500).json({ msg: "Document upload failed" });
   }
-
 };
 
+/* ─────────────────────────────────────────────────────────────
+   SELF UPLOAD  (Employee — uploads their own document)
+───────────────────────────────────────────────────────────── */
+export const selfUploadDocument = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { documentType, requestId } = req.body;
 
-/*
-========================================
-DOWNLOAD DOCUMENT
-ACCESS: ADMIN, HR
-========================================
-*/
+    if (!documentType)
+      return res.status(400).json({ msg: "documentType required" });
+    if (!req.file)
+      return res.status(400).json({ msg: "File required" });
+
+    const document = await prisma.employeeDocument.create({
+      data: {
+        employeeId:  userId,
+        uploadedBy:  userId,
+        documentType,
+        fileName:    req.file.originalname,
+        fileUrl:     req.file.filename,
+        mimeType:    req.file.mimetype,
+        fileSize:    req.file.size,
+      },
+    });
+
+    if (requestId) {
+      await prisma.documentRequest.updateMany({
+        where: { id: Number(requestId), userId, status: "PENDING" },
+        data:  { status: "FULFILLED", fulfilledAt: new Date() },
+      });
+    }
+
+    await createNotification({
+      userId:      null,
+      title:       "Employee Uploaded Document",
+      message:     `${req.user.name} uploaded "${documentType}".`,
+      type:        "INFO",
+      entity:      "DOCUMENT",
+      entityId:    null,
+      socketEvent: "notification:new",
+    });
+
+    res.json({ msg: "Document uploaded successfully", document });
+  } catch (err) {
+    console.error("selfUploadDocument error:", err);
+    res.status(500).json({ msg: "Upload failed" });
+  }
+};
+
+/* ─────────────────────────────────────────────────────────────
+   REQUEST DOCUMENT  (Admin/HR — asks employee to upload)
+───────────────────────────────────────────────────────────── */
+export const requestDocument = async (req, res) => {
+  try {
+    const { userId, documentType, message } = req.body;
+    if (!userId || !documentType)
+      return res.status(400).json({ msg: "userId and documentType required" });
+
+    const employee = await prisma.user.findUnique({
+      where:  { id: Number(userId) },
+      select: { id: true, name: true, email: true },
+    });
+    if (!employee) return res.status(404).json({ msg: "User not found" });
+
+    const docRequest = await prisma.documentRequest.create({
+      data: {
+        userId:      Number(userId),
+        requestedBy: req.user.id,
+        documentType,
+        message:     message?.trim() || null,
+      },
+    });
+
+    await createNotification({
+      userId:      employee.id,
+      title:       "Document Upload Required",
+      message:     `Please upload your "${documentType}".${message ? " — " + message : ""}`,
+      type:        "WARNING",
+      entity:      "DOCUMENT",
+      entityId:    null,
+      socketEvent: "notification:new",
+    });
+
+    sendDocumentRequestEmail(employee.email, { name: employee.name }, {
+      documentType,
+      message,
+      requestedBy: req.user.name,
+    });
+
+    res.json({ msg: "Document request sent", request: docRequest });
+  } catch (err) {
+    console.error("requestDocument error:", err);
+    res.status(500).json({ msg: "Failed to send document request" });
+  }
+};
+
+/* ─────────────────────────────────────────────────────────────
+   CANCEL REQUEST  (Admin/HR)
+───────────────────────────────────────────────────────────── */
+export const cancelDocumentRequest = async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    const existing = await prisma.documentRequest.findUnique({ where: { id } });
+    if (!existing) return res.status(404).json({ msg: "Request not found" });
+
+    await prisma.documentRequest.update({ where: { id }, data: { status: "CANCELLED" } });
+    res.json({ msg: "Request cancelled" });
+  } catch (err) {
+    console.error("cancelDocumentRequest error:", err);
+    res.status(500).json({ msg: "Cancel failed" });
+  }
+};
+
+/* ─────────────────────────────────────────────────────────────
+   DOWNLOAD  (Admin/HR + Employee own docs)
+───────────────────────────────────────────────────────────── */
 export const downloadDocument = async (req, res) => {
-
   try {
+    const document = await prisma.employeeDocument.findUnique({ where: { id: req.params.id } });
+    if (!document) return res.status(404).json({ msg: "Document not found" });
 
-    const { id } = req.params;
+    if (req.user.role === "EMPLOYEE" && document.employeeId !== req.user.id)
+      return res.status(403).json({ msg: "Access denied" });
 
-    const document = await prisma.employeeDocument.findUnique({
-      where: { id },
-    });
+    const filePath = path.join(process.cwd(), "uploads", "employee-documents", document.fileUrl);
+    if (!fs.existsSync(filePath)) return res.status(404).json({ msg: "File not found on server" });
 
-    if (!document) {
-      return res.status(404).json({
-        msg: "Document not found",
-      });
-    }
-
-    const filePath = path.join(
-      process.cwd(),
-      "uploads",
-      "employee-documents",
-      document.fileUrl
-    );
-
-    if (!fs.existsSync(filePath)) {
-      return res.status(404).json({
-        msg: "File not found on server",
-      });
-    }
-
-    // force download
     res.download(filePath, document.fileName);
-
-  } catch (error) {
-
-    console.error("Download error:", error);
-
-    res.status(500).json({
-      msg: "Download failed",
-    });
-
+  } catch (err) {
+    console.error("downloadDocument error:", err);
+    res.status(500).json({ msg: "Download failed" });
   }
-
 };
 
-
-/*
-========================================
-PREVIEW DOCUMENT (VIEW IN BROWSER)
-ACCESS: ADMIN, HR
-========================================
-*/
+/* ─────────────────────────────────────────────────────────────
+   PREVIEW  (Admin/HR + Employee own docs)
+───────────────────────────────────────────────────────────── */
 export const previewDocument = async (req, res) => {
-
   try {
+    const document = await prisma.employeeDocument.findUnique({ where: { id: req.params.id } });
+    if (!document) return res.status(404).json({ msg: "Document not found" });
 
-    const { id } = req.params;
+    if (req.user.role === "EMPLOYEE" && document.employeeId !== req.user.id)
+      return res.status(403).json({ msg: "Access denied" });
 
-    const document = await prisma.employeeDocument.findUnique({
-      where: { id },
-    });
+    const filePath = path.join(process.cwd(), "uploads", "employee-documents", document.fileUrl);
+    if (!fs.existsSync(filePath)) return res.status(404).json({ msg: "File missing" });
 
-    if (!document) {
-      return res.status(404).json({
-        msg: "Document not found",
-      });
-    }
-
-    const filePath = path.join(
-      process.cwd(),
-      "uploads",
-      "employee-documents",
-      document.fileUrl
-    );
-
-    if (!fs.existsSync(filePath)) {
-      return res.status(404).json({
-        msg: "File missing",
-      });
-    }
-
-    // VERY IMPORTANT HEADERS FOR PREVIEW
     res.setHeader("Content-Type", document.mimeType);
-
-    res.setHeader(
-      "Content-Disposition",
-      `inline; filename="${document.fileName}"`
-    );
-
+    res.setHeader("Content-Disposition", `inline; filename="${document.fileName}"`);
     res.setHeader("Cache-Control", "no-store");
-
     res.setHeader("Pragma", "no-cache");
-
-    // BEST METHOD
     res.sendFile(filePath);
-
-  } catch (error) {
-
-    console.error("Preview error:", error);
-
-    res.status(500).json({
-      msg: "Preview failed",
-    });
-
+  } catch (err) {
+    console.error("previewDocument error:", err);
+    res.status(500).json({ msg: "Preview failed" });
   }
-
 };
 
-
-/*
-========================================
-DELETE DOCUMENT
-ACCESS: ADMIN ONLY
-========================================
-*/
+/* ─────────────────────────────────────────────────────────────
+   DELETE  (Admin = any; Employee = only self-uploaded)
+───────────────────────────────────────────────────────────── */
 export const deleteDocument = async (req, res) => {
-
   try {
+    const document = await prisma.employeeDocument.findUnique({ where: { id: req.params.id } });
+    if (!document) return res.status(404).json({ msg: "Document not found" });
 
-    const { id } = req.params;
-
-    const document = await prisma.employeeDocument.findUnique({
-      where: { id },
-    });
-
-    if (!document) {
-      return res.status(404).json({
-        msg: "Document not found",
-      });
+    if (req.user.role === "EMPLOYEE") {
+      if (document.employeeId !== req.user.id || document.uploadedBy !== req.user.id)
+        return res.status(403).json({ msg: "You can only delete documents you uploaded" });
     }
 
-    const filePath = path.join(
-      process.cwd(),
-      "uploads",
-      "employee-documents",
-      document.fileUrl
-    );
+    const filePath = path.join(process.cwd(), "uploads", "employee-documents", document.fileUrl);
+    if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
 
-    if (fs.existsSync(filePath)) {
-      fs.unlinkSync(filePath);
-    }
-
-    await prisma.employeeDocument.delete({
-      where: { id },
-    });
-
-    res.json({
-      msg: "Document deleted",
-    });
-
-  } catch (error) {
-
-    console.error("Delete error:", error);
-
-    res.status(500).json({
-      msg: "Delete failed",
-    });
-
+    await prisma.employeeDocument.delete({ where: { id: req.params.id } });
+    res.json({ msg: "Document deleted" });
+  } catch (err) {
+    console.error("deleteDocument error:", err);
+    res.status(500).json({ msg: "Delete failed" });
   }
-
 };

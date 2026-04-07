@@ -297,3 +297,38 @@ export const sendPayrollStatusEmail = async (to, employee, payroll, status) => {
   `);
   await send(to, isPaid ? `Salary Credited for ${period} ✅` : `Payroll Approved for ${period}`, html);
 };
+
+/* ─────────────────────────────────────────────────────────────
+   8. DOCUMENT REQUEST — HR/Admin asks employee to upload a doc
+───────────────────────────────────────────────────────────── */
+export const sendDocumentRequestEmail = async (to, employee, { documentType, message, requestedBy }) => {
+  const html = emailWrapper(`
+    ${emailHeader("Document Upload Required", "Action Required")}
+    <tr><td style="padding:40px 30px;">
+      <h2 style="margin:0 0 6px;color:#111827;">Hello, ${employee.name} 👋</h2>
+      <p style="color:#4b5563;font-size:15px;line-height:1.6;margin:0 0 24px;">
+        <b>${requestedBy}</b> has requested you to upload a document in HRMS.
+      </p>
+
+      <div style="background:#fefce8;border:1px solid #fde047;border-radius:12px;padding:16px 20px;margin-bottom:16px;">
+        <table width="100%" cellpadding="0" cellspacing="0">
+          ${infoRow("Document Type", `<b>${documentType}</b>`)}
+          ${infoRow("Requested By",  requestedBy)}
+          ${message ? infoRow("Note", `<i style="color:#92400e;">${message}</i>`) : ""}
+        </table>
+      </div>
+
+      <p style="font-size:13px;color:#6b7280;margin:0 0 20px;">
+        Please log in to HRMS and go to <b>"My Documents"</b> to upload the requested document at your earliest convenience.
+      </p>
+
+      <div style="text-align:center;margin-top:8px;">
+        <span style="display:inline-block;padding:10px 24px;background:#2563eb;color:#fff;border-radius:8px;font-size:14px;font-weight:600;">
+          Upload via HRMS Portal
+        </span>
+      </div>
+    </td></tr>
+    ${emailFooter()}
+  `);
+  await send(to, `Action Required: Please Upload Your ${documentType}`, html);
+};

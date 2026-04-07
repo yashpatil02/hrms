@@ -41,6 +41,14 @@ const FULL_MENU = [
     ],
   },
   {
+    id: "my-documents",
+    section: "DOCUMENTS",
+    roles: ["EMPLOYEE"],
+    items: [
+      { name: "My Documents", path: "/my-documents", icon: <FaFolderOpen />, roles: ["EMPLOYEE"] },
+    ],
+  },
+  {
     id: "users",
     section: "USER MANAGEMENT",
     roles: ["ADMIN"],
