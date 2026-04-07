@@ -332,3 +332,38 @@ export const sendDocumentRequestEmail = async (to, employee, { documentType, mes
   `);
   await send(to, `Action Required: Please Upload Your ${documentType}`, html);
 };
+
+/* ─────────────────────────────────────────────────────────────
+   9. PASSWORD RESET EMAIL
+───────────────────────────────────────────────────────────── */
+export const sendPasswordResetEmail = async (to, { name, resetLink }) => {
+  const html = emailWrapper(`
+    ${emailHeader("Password Reset Request", "Security")}
+    <tr><td style="padding:40px 30px;">
+      <h2 style="margin:0 0 6px;color:#111827;">Hello, ${name} 👋</h2>
+      <p style="color:#4b5563;font-size:15px;line-height:1.6;margin:0 0 20px;">
+        We received a request to reset your HRMS account password.
+        Click the button below to set a new password.
+      </p>
+
+      <div style="text-align:center;margin:28px 0;">
+        <a href="${resetLink}" style="display:inline-block;padding:14px 32px;background:#2563eb;color:#fff;border-radius:10px;font-size:15px;font-weight:700;text-decoration:none;">
+          Reset My Password
+        </a>
+      </div>
+
+      <div style="background:#fef9c3;border:1px solid #fde047;border-radius:10px;padding:14px 18px;margin-bottom:20px;">
+        <p style="margin:0;font-size:13px;color:#92400e;">
+          ⏰ <b>This link expires in 15 minutes.</b> If you did not request a password reset, ignore this email — your account is safe.
+        </p>
+      </div>
+
+      <p style="font-size:12px;color:#9ca3af;margin:0;">
+        If the button doesn't work, copy this link into your browser:<br/>
+        <span style="color:#2563eb;word-break:break-all;">${resetLink}</span>
+      </p>
+    </td></tr>
+    ${emailFooter()}
+  `);
+  await send(to, "Reset Your HRMS Password", html);
+};

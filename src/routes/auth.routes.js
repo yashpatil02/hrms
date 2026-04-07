@@ -1,6 +1,4 @@
 import express from "express";
-import bcrypt from "bcrypt";
-import prisma from "../../prisma/client.js";
 import {
   login,
   validateInvite,
@@ -10,6 +8,8 @@ import {
   getPendingInvites,
   resendInvite,
   cancelInvite,
+  forgotPassword,
+  resetPassword,
 } from "../controllers/auth.controller.js";
 
 import authMiddleware from "../middlewares/auth.middleware.js";
@@ -20,25 +20,22 @@ const router = express.Router();
 // LOGIN
 router.post("/login", login);
 
-
 // VERIFY TOKEN
 router.get("/me", authMiddleware, (req, res) => res.json({ user: req.user }));
 
+// FORGOT / RESET PASSWORD (public)
+router.post("/forgot-password", forgotPassword);
+router.post("/reset-password",  resetPassword);
+
 // ADMIN → INVITE USER
-router.post("/invite-user",   authMiddleware, role(["ADMIN"]), inviteUser);
-
-// ADMIN → PENDING INVITES LIST
-router.get("/invites",        authMiddleware, role(["ADMIN"]), getPendingInvites);
-
-// ADMIN → RESEND INVITE
+router.post("/invite-user",        authMiddleware, role(["ADMIN"]), inviteUser);
+router.get("/invites",             authMiddleware, role(["ADMIN"]), getPendingInvites);
 router.post("/invites/:id/resend", authMiddleware, role(["ADMIN"]), resendInvite);
-
-// ADMIN → CANCEL INVITE
-router.delete("/invites/:id", authMiddleware, role(["ADMIN"]), cancelInvite);
+router.delete("/invites/:id",      authMiddleware, role(["ADMIN"]), cancelInvite);
 
 // INVITE FLOW (public)
-router.get("/invite/:token",  validateInvite);
+router.get("/invite/:token",    validateInvite);
 router.post("/complete-invite", completeInvite);
-router.post("/google-invite", googleInviteSignup);
+router.post("/google-invite",   googleInviteSignup);
 
 export default router;

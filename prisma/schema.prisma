@@ -36,8 +36,9 @@ model User {
   salaryStructure    SalaryStructure?
   payrolls           Payroll[]
 
-  documentRequests   DocumentRequest[]  @relation("DocRequests")
-  requestedDocuments DocumentRequest[]  @relation("DocRequestedBy")
+  documentRequests   DocumentRequest[]    @relation("DocRequests")
+  requestedDocuments DocumentRequest[]    @relation("DocRequestedBy")
+  passwordResetTokens PasswordResetToken[]
 }
 
 model Attendance {
@@ -229,6 +230,20 @@ model DocumentRequest {
 
   @@index([userId])
   @@index([status])
+}
+
+model PasswordResetToken {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  token     String   @unique
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@index([userId])
 }
 
 model Notification {

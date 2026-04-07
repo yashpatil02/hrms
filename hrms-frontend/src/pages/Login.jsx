@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import api from "../api/axios";
 import {
   FaEye, FaEyeSlash, FaShieldAlt, FaEnvelope,
   FaLock, FaSignInAlt, FaExclamationCircle,
-  FaUserTie, FaUsers, FaCalendarAlt, FaChartBar,
+  FaUsers, FaCalendarAlt, FaChartBar,
 } from "react-icons/fa";
 
 /* ============================================================
@@ -257,6 +257,10 @@ const Login = () => {
                 <label className="block text-xs font-bold text-gray-600 uppercase tracking-wide">
                   Password
                 </label>
+                <Link to="/forgot-password"
+                  className="text-xs text-blue-600 hover:text-blue-700 font-semibold hover:underline transition-colors">
+                  Forgot Password?
+                </Link>
               </div>
               <div className="relative">
                 <FaLock

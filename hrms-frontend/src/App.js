@@ -35,6 +35,8 @@ import HolidayManagement from "./pages/HolidayManagement";
 import HolidayCalendar from "./pages/HolidayCalendar";
 import HRAnalytics from "./pages/HRAnalytics";
 import MyDocuments from "./pages/employee/MyDocuments";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 
 function App() {
   return (
@@ -47,6 +49,8 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/invite/:token" element={<InviteRegister />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password/:token" element={<ResetPassword />} />
 
         {/* ===========================
             DASHBOARD
