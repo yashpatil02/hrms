@@ -24,49 +24,60 @@ const findManagerIds = async (department) => {
 export const createSession = async (req, res) => {
   try {
     const managerId = req.user.id;
-    const { gameDate, gameName, gameId, sport, league, qcType, employees, errors } = req.body;
+    const {
+      gameDate, gameName, gameId, sport, league, qcType,
+      employees: empList,
+      errors: errList,
+    } = req.body;
 
     if (!gameDate || !gameName || !sport || !league || !qcType)
       return res.status(400).json({ msg: "gameDate, gameName, sport, league, qcType are required" });
-    if (!Array.isArray(employees) || employees.length === 0)
+    if (!Array.isArray(empList) || empList.length === 0)
       return res.status(400).json({ msg: "At least one employee required" });
-    if (!Array.isArray(errors) || errors.length === 0)
+    if (!Array.isArray(errList) || errList.length === 0)
       return res.status(400).json({ msg: "No errors to save" });
 
+    /* ── Step 1: create session ── */
     const session = await prisma.qCSession.create({
       data: {
         managerId,
         gameDate: new Date(gameDate),
         gameName,
-        gameId:   gameId || null,
+        gameId: gameId || null,
         sport,
         league,
         qcType,
-        employees: {
-          create: employees.map(e => ({
-            employeeId: parseInt(e.employeeId),
-            fromTime:   e.fromTime,
-            toTime:     e.toTime,
-          })),
-        },
-        errors: {
-          create: errors
-            .filter(e => e.employeeId)
-            .map(e => ({
-              employeeId: parseInt(e.employeeId),
-              timestamp:  e.timestamp,
-              errorText:  e.errorText,
-            })),
-        },
       },
-      include: { employees: true, errors: true },
     });
 
-    /* notify each employee about their errors */
+    /* ── Step 2: create employee time-range records ── */
+    await prisma.qCSessionEmployee.createMany({
+      data: empList.map(e => ({
+        sessionId:  session.id,
+        employeeId: parseInt(e.employeeId),
+        fromTime:   e.fromTime,
+        toTime:     e.toTime,
+      })),
+    });
+
+    /* ── Step 3: create error records (only assigned ones) ── */
+    const assignedErrors = errList.filter(e => e.employeeId);
+    if (assignedErrors.length > 0) {
+      await prisma.qCError.createMany({
+        data: assignedErrors.map(e => ({
+          sessionId:  session.id,
+          employeeId: parseInt(e.employeeId),
+          timestamp:  e.timestamp,
+          errorText:  e.errorText,
+        })),
+      });
+    }
+
+    /* ── Step 4: notify employees ── */
     const byEmp = {};
-    session.errors.forEach(e => {
-      if (!byEmp[e.employeeId]) byEmp[e.employeeId] = 0;
-      byEmp[e.employeeId]++;
+    assignedErrors.forEach(e => {
+      const id = parseInt(e.employeeId);
+      byEmp[id] = (byEmp[id] || 0) + 1;
     });
     await Promise.all(
       Object.entries(byEmp).map(([empId, count]) =>
@@ -80,10 +91,10 @@ export const createSession = async (req, res) => {
       )
     );
 
-    res.status(201).json({ msg: "Session created", session });
+    res.status(201).json({ msg: "Session created", sessionId: session.id, errorsLogged: assignedErrors.length });
   } catch (err) {
-    console.error("createSession:", err);
-    res.status(500).json({ msg: "Failed to create session" });
+    console.error("createSession error:", err.message, err.code || "");
+    res.status(500).json({ msg: err.message || "Failed to create session" });
   }
 };
 
