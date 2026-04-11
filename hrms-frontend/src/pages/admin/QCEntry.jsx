@@ -237,7 +237,8 @@ export default function QCEntry() {
       setGameName(""); setGameId(""); setLeague(""); setErrorText("");
       setEmpRows([emptyEmpRow()]);
     } catch (err) {
-      alert(err.response?.data?.msg || "Failed to save session");
+      console.error("QC save error:", err.response?.data || err.message);
+      alert(err.response?.data?.msg || err.message || "Failed to save session");
     } finally { setSaving(false); }
   };
 
