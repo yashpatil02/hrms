@@ -38,6 +38,12 @@ const timeAgo = (date) => {
    MAIN
 ================================ */
 export default function CreateUser() {
+  const currentUser = JSON.parse(localStorage.getItem("user") || "{}");
+  /* MANAGER can only invite EMPLOYEE or MANAGER, not HR */
+  const availableRoles = currentUser.role === "MANAGER"
+    ? ["EMPLOYEE", "MANAGER"]
+    : ["EMPLOYEE", "MANAGER", "HR"];
+
   const [form, setForm]         = useState({ name:"", email:"", role:"EMPLOYEE", department:"" });
   const [loading, setLoading]   = useState(false);
   const [msg, setMsg]           = useState("");
@@ -219,7 +225,7 @@ export default function CreateUser() {
                     Role *
                   </label>
                   <div className="grid grid-cols-3 gap-3">
-                    {ROLES.map(r => (
+                    {availableRoles.map(r => (
                       <button key={r} type="button"
                         onClick={() => setForm({...form, role:r, department: r==="HR" ? "" : form.department})}
                         className={`flex flex-col items-center gap-1.5 px-3 py-3 rounded-xl border-2 transition-all text-sm font-medium ${

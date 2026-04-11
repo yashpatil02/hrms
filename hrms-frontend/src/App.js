@@ -168,23 +168,23 @@ function App() {
           }
         />
 
-        {/* ✅ FIX #3 — AdminAttendanceByShift: ProtectedRoute → AdminRoute */}
+        {/* Attendance Entry — MANAGER allowed (dept-filtered) */}
         <Route
           path="/admin/attendance-by-shift"
           element={
-            <AdminRoute>
+            <ManagerRoute>
               <AdminAttendanceByShift />
-            </AdminRoute>
+            </ManagerRoute>
           }
         />
 
-        {/* ✅ FIX #3 — AdminShiftAttendanceReport: ProtectedRoute → AdminRoute */}
+        {/* Shift Attendance Report — MANAGER allowed (dept-filtered) */}
         <Route
           path="/admin/shift-attendance-report"
           element={
-            <AdminRoute>
+            <ManagerRoute>
               <AdminShiftAttendanceReport />
-            </AdminRoute>
+            </ManagerRoute>
           }
         />
 
@@ -208,12 +208,13 @@ function App() {
           }
         />
 
+        {/* Create User — MANAGER allowed (can only invite EMPLOYEE/MANAGER) */}
         <Route
           path="/admin/create-user"
           element={
-            <AdminRoute>
+            <ManagerRoute>
               <CreateUser />
-            </AdminRoute>
+            </ManagerRoute>
           }
         />
 
@@ -273,7 +274,7 @@ function App() {
         />
         <Route
           path="/admin/holidays"
-          element={<ManagerRoute><HolidayManagement /></ManagerRoute>}
+          element={<AdminRoute><HolidayManagement /></AdminRoute>}
         />
 
         {/* ===========================

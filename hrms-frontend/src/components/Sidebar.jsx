@@ -65,7 +65,8 @@ const FULL_MENU = [
     section: "USER MANAGEMENT",
     roles: ["HR", "MANAGER"],
     items: [
-      { name: "Employees", path: "/users", icon: <FaUsers /> },
+      { name: "Employees",   path: "/users",             icon: <FaUsers />   },
+      { name: "Create User", path: "/admin/create-user", icon: <FaUserPlus /> },
     ],
   },
   {
@@ -84,7 +85,9 @@ const FULL_MENU = [
     section: "ATTENDANCE",
     roles: ["MANAGER"],
     items: [
-      { name: "Attendance Report", path: "/admin/attendance", icon: <FaClipboardList /> },
+      { name: "Attendance Entry",        path: "/admin/attendance-by-shift",     icon: <FaUserCheck />    },
+      { name: "Attendance Report",       path: "/admin/attendance",              icon: <FaClipboardList /> },
+      { name: "Shift Attendance Report", path: "/admin/shift-attendance-report", icon: <FaChartBar />     },
     ],
   },
   {
@@ -101,7 +104,7 @@ const FULL_MENU = [
     section: "HOLIDAYS",
     items: [
       { name: "Holiday Calendar",   path: "/holidays",        icon: <FaGlobe />,       roles: ["ADMIN", "HR", "EMPLOYEE", "MANAGER"] },
-      { name: "Holiday Management", path: "/admin/holidays",  icon: <FaCalendarAlt />, roles: ["ADMIN", "HR", "MANAGER"] },
+      { name: "Holiday Management", path: "/admin/holidays",  icon: <FaCalendarAlt />, roles: ["ADMIN", "HR"] },
     ],
   },
   {

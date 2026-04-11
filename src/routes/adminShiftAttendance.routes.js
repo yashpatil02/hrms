@@ -18,7 +18,7 @@ const router = express.Router();
 // POST — save/update attendance records
 router.post(
   "/attendance-by-shift",
-  auth, role(["ADMIN"]),
+  auth, role(["ADMIN", "MANAGER"]),
   saveShiftAttendance
 );
 
@@ -26,7 +26,7 @@ router.post(
 // ?date=YYYY-MM-DD&shift=MORNING&department=SQ
 router.get(
   "/shift-attendance-report",
-  auth, role(["ADMIN", "HR"]),
+  auth, role(["ADMIN", "HR", "MANAGER"]),
   getShiftAttendanceByDateAndShift
 );
 
@@ -34,7 +34,7 @@ router.get(
 // ?date=YYYY-MM-DD
 router.get(
   "/daily-summary",
-  auth, role(["ADMIN", "HR"]),
+  auth, role(["ADMIN", "HR", "MANAGER"]),
   getDailySummary
 );
 
@@ -46,7 +46,7 @@ router.get(
 // ?month=&year=&department=&shift=
 router.get(
   "/monthly-shift-attendance",
-  auth, role(["ADMIN", "HR"]),
+  auth, role(["ADMIN", "HR", "MANAGER"]),
   getMonthlyShiftAttendance
 );
 

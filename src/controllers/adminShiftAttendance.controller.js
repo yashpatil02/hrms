@@ -17,7 +17,11 @@ const safeDate = (dateStr) => {
 ============================================================ */
 export const getShiftAttendanceByDateAndShift = async (req, res) => {
   try {
-    const { date, shift, department } = req.query;
+    const { date, shift } = req.query;
+    /* MANAGER is locked to their own department */
+    const department = (req.user.role === "MANAGER" && req.user.department)
+      ? req.user.department
+      : req.query.department;
 
     if (!date || !shift) {
       return res.status(400).json({ msg: "Date and shift are required" });
@@ -199,7 +203,11 @@ export const saveShiftAttendance = async (req, res) => {
 ============================================================ */
 export const getMonthlyShiftAttendance = async (req, res) => {
   try {
-    const { month, year, department, shift } = req.query;
+    const { month, year, shift } = req.query;
+    /* MANAGER locked to their department */
+    const department = (req.user.role === "MANAGER" && req.user.department)
+      ? req.user.department
+      : req.query.department;
 
     if (!month || !year) {
       return res.status(400).json({ msg: "Month and year are required" });
