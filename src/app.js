@@ -19,6 +19,7 @@ import payrollRoutes from "./routes/payroll.routes.js";
 import holidayRoutes from "./routes/holiday.routes.js";
 import profileRoutes from "./routes/profile.routes.js";
 import analyticsRoutes from "./routes/analytics.routes.js";
+import targetRoutes from "./routes/target.routes.js";
 
 const app = express();
 
@@ -118,6 +119,9 @@ app.use("/api/profile", profileRoutes);
 
 // 📊 ANALYTICS
 app.use("/api/analytics", analyticsRoutes);
+
+// 🎯 DAILY TARGETS
+app.use("/api/targets", targetRoutes);
 
 /* ================================
    FALLBACKS

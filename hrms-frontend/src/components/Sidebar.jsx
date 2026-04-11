@@ -6,7 +6,7 @@ import {
   FaFolderOpen, FaBell, FaUserSlash, FaUserPlus,
   FaSearch, FaTimes, FaChevronDown, FaChevronRight, FaCalendarCheck,
   FaShieldAlt, FaUserTie, FaCog, FaMoneyBillWave, FaMoneyCheckAlt,
-  FaUserCircle, FaGlobe, FaPollH,
+  FaUserCircle, FaGlobe, FaPollH, FaBullseye,
 } from "react-icons/fa";
 
 /* ============================================================
@@ -122,6 +122,22 @@ const FULL_MENU = [
     roles: ["ADMIN", "HR"],
     items: [
       { name: "HR Analytics", path: "/admin/analytics", icon: <FaPollH /> },
+    ],
+  },
+  {
+    id: "targets-admin",
+    section: "PRODUCTIVITY",
+    roles: ["ADMIN", "HR", "MANAGER"],
+    items: [
+      { name: "Team Targets", path: "/admin/targets", icon: <FaBullseye /> },
+    ],
+  },
+  {
+    id: "targets-employee",
+    section: "PRODUCTIVITY",
+    roles: ["EMPLOYEE"],
+    items: [
+      { name: "My Target", path: "/my-target", icon: <FaBullseye /> },
     ],
   },
   {

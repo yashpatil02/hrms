@@ -38,6 +38,8 @@ import HRAnalytics from "./pages/HRAnalytics";
 import MyDocuments from "./pages/employee/MyDocuments";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
+import MyTarget from "./pages/employee/MyTarget";
+import AllTargets from "./pages/admin/AllTargets";
 
 function App() {
   return (
@@ -322,6 +324,26 @@ function App() {
             <ProtectedRoute>
               <MyDocuments />
             </ProtectedRoute>
+          }
+        />
+
+        {/* ===========================
+            TARGETS
+        =========================== */}
+        <Route
+          path="/my-target"
+          element={
+            <ProtectedRoute>
+              <MyTarget />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/targets"
+          element={
+            <ManagerRoute>
+              <AllTargets />
+            </ManagerRoute>
           }
         />
 

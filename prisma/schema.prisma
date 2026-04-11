@@ -39,6 +39,7 @@ model User {
   documentRequests   DocumentRequest[]    @relation("DocRequests")
   requestedDocuments DocumentRequest[]    @relation("DocRequestedBy")
   passwordResetTokens PasswordResetToken[]
+  dailyTargets       DailyTarget[]
 }
 
 model Attendance {
@@ -369,4 +370,22 @@ enum PayrollStatus {
   APPROVED
   PAID
   CANCELLED
+}
+
+// ── DAILY TARGET / PRODUCTIVITY ──
+model DailyTarget {
+  id         Int      @id @default(autoincrement())
+  userId     Int
+  date       DateTime
+  counts     Json     // { soccerStdSingle: 2, soccerStdDouble: 1, ... }
+  totalHours Float    @default(0)
+  notes      String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date])
+  @@index([userId])
+  @@index([date])
 }
