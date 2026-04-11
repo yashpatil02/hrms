@@ -40,6 +40,9 @@ import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import MyTarget from "./pages/employee/MyTarget";
 import AllTargets from "./pages/admin/AllTargets";
+import QCEntry from "./pages/admin/QCEntry";
+import AllQCErrors from "./pages/admin/AllQCErrors";
+import MyErrors from "./pages/employee/MyErrors";
 
 function App() {
   return (
@@ -345,6 +348,22 @@ function App() {
               <AllTargets />
             </ManagerRoute>
           }
+        />
+
+        {/* ===========================
+            QC ERROR TRACKING
+        =========================== */}
+        <Route
+          path="/admin/qc/entry"
+          element={<ManagerRoute><QCEntry /></ManagerRoute>}
+        />
+        <Route
+          path="/admin/qc/errors"
+          element={<ManagerRoute><AllQCErrors /></ManagerRoute>}
+        />
+        <Route
+          path="/my-errors"
+          element={<ProtectedRoute><MyErrors /></ProtectedRoute>}
         />
 
         {/* ===========================

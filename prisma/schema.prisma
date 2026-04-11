@@ -40,7 +40,13 @@ model User {
   documentRequests   DocumentRequest[]    @relation("DocRequests")
   requestedDocuments DocumentRequest[]    @relation("DocRequestedBy")
   passwordResetTokens PasswordResetToken[]
-  dailyTargets       DailyTarget[]
+  dailyTargets        DailyTarget[]
+
+  // QC relations
+  qcSessions          QCSession[]          @relation("QCManager")
+  qcSessionEmployees  QCSessionEmployee[]  @relation("QCEmployee")
+  qcErrors            QCError[]            @relation("QCErrors")
+  qcDisputes          QCDispute[]          @relation("QCDisputes")
 }
 
 model Attendance {
@@ -391,4 +397,100 @@ model DailyTarget {
   @@unique([userId, date])
   @@index([userId])
   @@index([date])
+}
+
+// ── QC ERROR TRACKING ──
+
+model QCSession {
+  id        Int      @id @default(autoincrement())
+  managerId Int
+  gameDate  DateTime
+  gameName  String
+  gameId    String?
+  sport     QCSport
+  league    String
+  qcType    QCType
+  createdAt DateTime @default(now())
+
+  manager   User                @relation("QCManager", fields: [managerId], references: [id])
+  employees QCSessionEmployee[]
+  errors    QCError[]
+
+  @@index([managerId])
+  @@index([gameDate])
+  @@index([sport])
+}
+
+model QCSessionEmployee {
+  id         Int    @id @default(autoincrement())
+  sessionId  Int
+  employeeId Int
+  fromTime   String // "HH:MM:SS"
+  toTime     String // "HH:MM:SS"
+
+  session  QCSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  employee User      @relation("QCEmployee", fields: [employeeId], references: [id])
+
+  @@index([sessionId])
+  @@index([employeeId])
+}
+
+model QCError {
+  id         Int           @id @default(autoincrement())
+  sessionId  Int
+  employeeId Int
+  timestamp  String        // "HH:MM:SS"
+  errorText  String
+  status     QCErrorStatus @default(PENDING)
+  createdAt  DateTime      @default(now())
+
+  session  QCSession  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  employee User       @relation("QCErrors", fields: [employeeId], references: [id])
+  disputes QCDispute[]
+
+  @@index([sessionId])
+  @@index([employeeId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model QCDispute {
+  id         Int             @id @default(autoincrement())
+  errorId    Int
+  employeeId Int
+  reason     String
+  status     QCDisputeStatus @default(PENDING)
+  createdAt  DateTime        @default(now())
+
+  error    QCError @relation(fields: [errorId], references: [id], onDelete: Cascade)
+  employee User    @relation("QCDisputes", fields: [employeeId], references: [id])
+
+  @@index([errorId])
+  @@index([employeeId])
+  @@index([status])
+}
+
+enum QCSport {
+  SOCCER
+  ICE_HOCKEY
+  FIELD_HOCKEY
+  HANDBALL
+  BASKETBALL
+}
+
+enum QCType {
+  REVIEW
+  DEEP
+}
+
+enum QCErrorStatus {
+  PENDING
+  VALID
+  INVALID
+}
+
+enum QCDisputeStatus {
+  PENDING
+  APPROVED
+  REJECTED
 }

@@ -20,6 +20,7 @@ import holidayRoutes from "./routes/holiday.routes.js";
 import profileRoutes from "./routes/profile.routes.js";
 import analyticsRoutes from "./routes/analytics.routes.js";
 import targetRoutes from "./routes/target.routes.js";
+import qcRoutes from "./routes/qc.routes.js";
 
 const app = express();
 
@@ -122,6 +123,9 @@ app.use("/api/analytics", analyticsRoutes);
 
 // 🎯 DAILY TARGETS
 app.use("/api/targets", targetRoutes);
+
+// 🔍 QC ERROR TRACKING
+app.use("/api/qc", qcRoutes);
 
 /* ================================
    FALLBACKS

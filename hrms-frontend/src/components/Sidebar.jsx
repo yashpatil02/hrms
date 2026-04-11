@@ -6,7 +6,7 @@ import {
   FaFolderOpen, FaBell, FaUserSlash, FaUserPlus,
   FaSearch, FaTimes, FaChevronDown, FaChevronRight, FaCalendarCheck,
   FaShieldAlt, FaUserTie, FaCog, FaMoneyBillWave, FaMoneyCheckAlt,
-  FaUserCircle, FaGlobe, FaPollH, FaBullseye,
+  FaUserCircle, FaGlobe, FaPollH, FaBullseye, FaExclamationCircle, FaClipboardCheck,
 } from "react-icons/fa";
 
 /* ============================================================
@@ -125,19 +125,22 @@ const FULL_MENU = [
     ],
   },
   {
-    id: "targets-admin",
+    id: "productivity-admin",
     section: "PRODUCTIVITY",
     roles: ["ADMIN", "HR", "MANAGER"],
     items: [
-      { name: "Team Targets", path: "/admin/targets", icon: <FaBullseye /> },
+      { name: "Team Targets",  path: "/admin/targets",     icon: <FaBullseye /> },
+      { name: "QC Entry",      path: "/admin/qc/entry",    icon: <FaClipboardCheck /> },
+      { name: "QC Reports",    path: "/admin/qc/errors",   icon: <FaExclamationCircle /> },
     ],
   },
   {
-    id: "targets-employee",
+    id: "productivity-employee",
     section: "PRODUCTIVITY",
     roles: ["EMPLOYEE"],
     items: [
-      { name: "My Target", path: "/my-target", icon: <FaBullseye /> },
+      { name: "My Target", path: "/my-target",   icon: <FaBullseye /> },
+      { name: "My Errors", path: "/my-errors",   icon: <FaExclamationCircle /> },
     ],
   },
   {
