@@ -281,6 +281,7 @@ function TargetSheet({ groups, counts, onChange, label }) {
                 <input
                   type="number"
                   min="0"
+                  step="0.5"
                   value={counts[c.key] ?? ""}
                   onChange={e => onChange(c.key, e.target.value)}
                   placeholder="0"
@@ -380,12 +381,12 @@ export default function MyTarget() {
 
   /* ── HANDLE INPUT ── */
   const handleCount = (key, val) => {
-    const n = val === "" ? "" : Math.max(0, parseInt(val) || 0);
+    const n = val === "" ? "" : Math.max(0, parseFloat(val) || 0);
     setCounts(p => ({ ...p, [key]: n }));
     setSaved(false);
   };
   const handleOT = (key, val) => {
-    const n = val === "" ? "" : Math.max(0, parseInt(val) || 0);
+    const n = val === "" ? "" : Math.max(0, parseFloat(val) || 0);
     setOvertime(p => ({ ...p, [key]: n }));
     setSaved(false);
   };
