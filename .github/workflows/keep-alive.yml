@@ -1,0 +1,20 @@
+name: Keep Render Alive
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"   # every 10 minutes
+  workflow_dispatch:           # manual trigger from GitHub UI
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping backend health endpoint
+        run: |
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://hrms-backend-9g69.onrender.com/health)
+          echo "Response: $STATUS"
+          if [ "$STATUS" != "200" ]; then
+            echo "Warning: health check returned $STATUS"
+          else
+            echo "Server is alive"
+          fi

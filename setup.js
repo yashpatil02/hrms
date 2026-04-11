@@ -106,6 +106,18 @@ async function ensureQCTables() {
       await prisma.$executeRawUnsafe(sql);
     }
 
+    // Missing indexes on high-traffic tables
+    const extraIndexes = [
+      `CREATE INDEX IF NOT EXISTS "Attendance_userId_idx"        ON "Attendance"("userId")`,
+      `CREATE INDEX IF NOT EXISTS "Attendance_userId_date_idx"   ON "Attendance"("userId", "date")`,
+      `CREATE INDEX IF NOT EXISTS "ShiftAttendance_analystId_idx" ON "ShiftAttendance"("analystId")`,
+      `CREATE INDEX IF NOT EXISTS "Payroll_userId_idx"           ON "Payroll"("userId")`,
+      `CREATE INDEX IF NOT EXISTS "Notification_userId_read_idx" ON "Notification"("userId", "isRead")`,
+    ];
+    for (const sql of extraIndexes) {
+      await prisma.$executeRawUnsafe(sql);
+    }
+
     // Also ensure overtime columns exist on DailyTarget and User
     await prisma.$executeRawUnsafe(`
       ALTER TABLE "DailyTarget" ADD COLUMN IF NOT EXISTS "overtime" JSONB

@@ -174,11 +174,12 @@ export const getSessionDetail = async (req, res) => {
 ============================================================ */
 export const getAllErrors = async (req, res) => {
   try {
-    const { employeeId, sport, status, from, to, search } = req.query;
+    const { employeeId, sport, status, from, to, search, page = 1 } = req.query;
+    const limit = 50;
+    const skip  = (parseInt(page) - 1) * limit;
 
     const where = {};
     if (req.user.role === "MANAGER") {
-      /* MANAGER: only sessions they created */
       const mySessions = await prisma.qCSession.findMany({
         where: { managerId: req.user.id },
         select: { id: true },
@@ -195,18 +196,22 @@ export const getAllErrors = async (req, res) => {
     }
     if (sport) where.session = { sport };
 
-    const errors = await prisma.qCError.findMany({
-      where,
-      include: {
-        employee: { select: { id: true, name: true, department: true } },
-        session:  { select: { id: true, gameName: true, sport: true, league: true, qcType: true, gameDate: true } },
-        disputes: { where: { status: "PENDING" }, select: { id: true } },
-      },
-      orderBy: { createdAt: "desc" },
-      take: 200,
-    });
+    const [errors, total] = await Promise.all([
+      prisma.qCError.findMany({
+        where,
+        include: {
+          employee: { select: { id: true, name: true, department: true } },
+          session:  { select: { id: true, gameName: true, sport: true, league: true, qcType: true, gameDate: true } },
+          disputes: { where: { status: "PENDING" }, select: { id: true } },
+        },
+        orderBy: { createdAt: "desc" },
+        skip,
+        take: limit,
+      }),
+      prisma.qCError.count({ where }),
+    ]);
 
-    res.json(errors);
+    res.json({ errors, total, page: parseInt(page), pages: Math.ceil(total / limit) });
   } catch (err) {
     console.error("getAllErrors:", err);
     res.status(500).json({ msg: "Failed to fetch errors" });

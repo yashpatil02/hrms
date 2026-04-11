@@ -128,6 +128,13 @@ app.use("/api/targets", targetRoutes);
 app.use("/api/qc", qcRoutes);
 
 /* ================================
+   HEALTH CHECK (for keep-alive ping)
+================================ */
+app.get("/health", (_req, res) => {
+  res.json({ status: "ok", ts: new Date().toISOString() });
+});
+
+/* ================================
    FALLBACKS
 ================================ */
 
