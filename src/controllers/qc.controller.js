@@ -244,17 +244,16 @@ export const getMyErrors = async (req, res) => {
     const invalid = errors.filter(e => e.status === "INVALID").length;
     const pending = errors.filter(e => e.status === "PENDING").length;
 
-    /* Most common error keywords */
-    const wordCount = {};
+    /* Most common full error phrases */
+    const phraseCount = {};
     errors.forEach(e => {
-      e.errorText.toLowerCase().split(/\s+/).forEach(w => {
-        if (w.length > 2) wordCount[w] = (wordCount[w] || 0) + 1;
-      });
+      const phrase = e.errorText.toLowerCase().trim();
+      phraseCount[phrase] = (phraseCount[phrase] || 0) + 1;
     });
-    const topErrors = Object.entries(wordCount)
+    const topErrors = Object.entries(phraseCount)
       .sort((a, b) => b[1] - a[1])
-      .slice(0, 5)
-      .map(([word, count]) => ({ word, count }));
+      .slice(0, 8)
+      .map(([phrase, count]) => ({ phrase, count }));
 
     /* Daily counts last 30 days */
     const now = new Date();
@@ -269,23 +268,21 @@ export const getMyErrors = async (req, res) => {
       if (daily[day] !== undefined) daily[day]++;
     });
 
-    /* Improvement suggestions based on top error words */
-    const SUGGESTIONS = {
-      miss:    "Work on accuracy — review footage for missed events",
-      shot:    "Focus on shot detection and classification rules",
-      cross:   "Review cross event marking guidelines",
-      corner:  "Double-check corner detection criteria",
-      foul:    "Study foul classification carefully",
-      goal:    "Goal events need careful verification — high priority",
-      offside: "Review offside detection rules thoroughly",
-      card:    "Ensure card events are properly logged",
-      penalty: "Penalty events need extra verification",
-      pass:    "Review pass event accuracy standards",
-    };
-    const suggestions = topErrors
-      .map(({ word }) => SUGGESTIONS[word] || `Review incidents involving "${word}" events`)
-      .filter((v, i, a) => a.indexOf(v) === i)
-      .slice(0, 3);
+    /* Improvement suggestions based on top error phrases */
+    const suggestions = topErrors.slice(0, 3).map(({ phrase }) => {
+      const lp = phrase.toLowerCase();
+      if (lp.includes("shot"))    return `Focus on shot detection — "${phrase}" is your most common mistake. Review shot classification rules carefully.`;
+      if (lp.includes("miss"))    return `Work on accuracy — "${phrase}" errors indicate missed events. Slow down and review footage twice.`;
+      if (lp.includes("goal"))    return `Goal events need extra care — "${phrase}" is high-priority. Always verify before logging.`;
+      if (lp.includes("cross"))   return `Review cross event guidelines — "${phrase}" is recurring. Study the marking criteria again.`;
+      if (lp.includes("corner"))  return `Double-check corner detection — "${phrase}" errors suggest criteria confusion.`;
+      if (lp.includes("foul"))    return `Study foul classification — "${phrase}" is a common area. Review the rulebook.`;
+      if (lp.includes("offside")) return `Review offside detection — "${phrase}" needs careful timing analysis.`;
+      if (lp.includes("card"))    return `Ensure card events are logged correctly — "${phrase}" suggests a logging pattern issue.`;
+      if (lp.includes("penalty")) return `Penalty events need extra verification — "${phrase}" is high-stakes.`;
+      if (lp.includes("pass"))    return `Review pass event accuracy — "${phrase}" errors affect game flow tracking.`;
+      return `Improve on: "${phrase}" — review this event type's guidelines with your manager.`;
+    }).filter((v, i, a) => a.indexOf(v) === i).slice(0, 3);
 
     res.json({
       errors,
@@ -408,26 +405,37 @@ export const resolveDispute = async (req, res) => {
     if (!dispute) return res.status(404).json({ msg: "Dispute not found" });
     if (dispute.status !== "PENDING") return res.status(409).json({ msg: "Dispute already resolved" });
 
-    const newErrorStatus = action === "APPROVED" ? "INVALID" : "VALID";
+    /* capture before any delete */
+    const { employee, error: qcError } = dispute;
 
-    await prisma.$transaction([
-      prisma.qCDispute.update({ where: { id: disputeId }, data: { status: action } }),
-      prisma.qCError.update({ where: { id: dispute.errorId }, data: { status: newErrorStatus } }),
-    ]);
+    if (action === "APPROVED") {
+      /* Delete the error entirely — QCDispute cascades via FK */
+      await prisma.qCError.delete({ where: { id: qcError.id } });
 
-    /* notify employee */
-    const approved = action === "APPROVED";
-    await notify(
-      dispute.employee.id,
-      approved ? "Dispute Approved — Error Removed" : "Dispute Rejected — Error Valid",
-      approved
-        ? `Your dispute for error "${dispute.error.errorText}" at ${dispute.error.timestamp} in "${dispute.error.session.gameName}" was approved. The error has been marked invalid.`
-        : `Your dispute for error "${dispute.error.errorText}" at ${dispute.error.timestamp} in "${dispute.error.session.gameName}" was rejected. The error remains valid.`,
-      "QC_DISPUTE_RESOLVED",
-      dispute.error.sessionId
-    );
+      await notify(
+        employee.id,
+        "Dispute Approved — Error Deleted",
+        `Your dispute for error "${qcError.errorText}" at ${qcError.timestamp} in "${qcError.session.gameName}" was approved. The error has been permanently removed.`,
+        "QC_DISPUTE_RESOLVED",
+        qcError.sessionId
+      );
+    } else {
+      /* REJECTED: keep error, mark VALID, close dispute */
+      await prisma.$transaction([
+        prisma.qCDispute.update({ where: { id: disputeId }, data: { status: "REJECTED" } }),
+        prisma.qCError.update({ where: { id: qcError.id }, data: { status: "VALID" } }),
+      ]);
 
-    res.json({ msg: `Dispute ${action.toLowerCase()}`, action, newErrorStatus });
+      await notify(
+        employee.id,
+        "Dispute Rejected — Error Valid",
+        `Your dispute for error "${qcError.errorText}" at ${qcError.timestamp} in "${qcError.session.gameName}" was rejected. The error remains valid.`,
+        "QC_DISPUTE_RESOLVED",
+        qcError.sessionId
+      );
+    }
+
+    res.json({ msg: `Dispute ${action.toLowerCase()}`, action });
   } catch (err) {
     console.error("resolveDispute:", err);
     res.status(500).json({ msg: "Failed to resolve dispute" });
