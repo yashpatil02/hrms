@@ -31,6 +31,11 @@ export const TARGET_RATES = {
   event:                1,
 };
 
+/* LIVE keys — excluded from overtime */
+const LIVE_KEYS = new Set([
+  "liveSoccer", "liveFutsal", "liveVolleyball", "liveBasketball", "liveHandball",
+]);
+
 const calcTotal = (counts = {}) =>
   parseFloat(
     Object.entries(counts)
@@ -38,14 +43,55 @@ const calcTotal = (counts = {}) =>
       .toFixed(2)
   );
 
+const calcOT = (overtime = {}) =>
+  parseFloat(
+    Object.entries(overtime)
+      .filter(([key]) => !LIVE_KEYS.has(key))
+      .reduce((sum, [key, val]) => sum + (TARGET_RATES[key] || 0) * (Number(val) || 0), 0)
+      .toFixed(2)
+  );
+
+/* ============================================================
+   GET / SET OVERTIME RATE  —  GET|PATCH /api/targets/rate
+============================================================ */
+export const getOvertimeRate = async (req, res) => {
+  try {
+    const user = await prisma.user.findUnique({
+      where:  { id: req.user.id },
+      select: { overtimeRatePerHour: true },
+    });
+    res.json({ rate: user?.overtimeRatePerHour ?? 0 });
+  } catch (err) {
+    console.error("getOvertimeRate:", err);
+    res.status(500).json({ msg: "Failed to fetch rate" });
+  }
+};
+
+export const updateOvertimeRate = async (req, res) => {
+  try {
+    const rate = parseFloat(req.body.rate);
+    if (isNaN(rate) || rate < 0)
+      return res.status(400).json({ msg: "Invalid rate" });
+
+    await prisma.user.update({
+      where: { id: req.user.id },
+      data:  { overtimeRatePerHour: rate },
+    });
+    res.json({ msg: "Rate updated", rate });
+  } catch (err) {
+    console.error("updateOvertimeRate:", err);
+    res.status(500).json({ msg: "Failed to update rate" });
+  }
+};
+
 /* ============================================================
    SAVE / UPDATE TARGET  —  POST /api/targets
-   Body: { date, counts, notes? }
+   Body: { date, counts, notes?, overtime?, overtimeHours? }
 ============================================================ */
 export const saveTarget = async (req, res) => {
   try {
     const userId = req.user.id;
-    const { date, counts, notes } = req.body;
+    const { date, counts, notes, overtime, overtimeHours } = req.body;
 
     if (!date || !counts || typeof counts !== "object")
       return res.status(400).json({ msg: "date and counts are required" });
@@ -55,10 +101,32 @@ export const saveTarget = async (req, res) => {
 
     const totalHours = calcTotal(counts);
 
+    /* if frontend sends pre-snapped overtimeHours, trust it; else recalc */
+    const otHours =
+      overtimeHours !== undefined
+        ? parseFloat(parseFloat(overtimeHours).toFixed(2))
+        : overtime && typeof overtime === "object"
+          ? calcOT(overtime)
+          : 0;
+
     const record = await prisma.dailyTarget.upsert({
       where:  { userId_date: { userId, date: day } },
-      update: { counts, totalHours, notes: notes || null },
-      create: { userId, date: day, counts, totalHours, notes: notes || null },
+      update: {
+        counts,
+        totalHours,
+        overtime:      overtime || null,
+        overtimeHours: otHours,
+        notes:         notes || null,
+      },
+      create: {
+        userId,
+        date:          day,
+        counts,
+        totalHours,
+        overtime:      overtime || null,
+        overtimeHours: otHours,
+        notes:         notes || null,
+      },
     });
 
     res.json({ msg: "Target saved", record });
@@ -81,18 +149,29 @@ export const getMyTargets = async (req, res) => {
     const start = new Date(year, month - 1, 1);
     const end   = new Date(year, month, 0, 23, 59, 59);
 
-    const records = await prisma.dailyTarget.findMany({
-      where:   { userId, date: { gte: start, lte: end } },
-      orderBy: { date: "asc" },
-    });
+    const [records, user] = await Promise.all([
+      prisma.dailyTarget.findMany({
+        where:   { userId, date: { gte: start, lte: end } },
+        orderBy: { date: "asc" },
+      }),
+      prisma.user.findUnique({
+        where:  { id: userId },
+        select: { overtimeRatePerHour: true },
+      }),
+    ]);
 
-    res.json(records.map(r => ({
-      id:         r.id,
-      date:       r.date.toISOString().split("T")[0],
-      counts:     r.counts,
-      totalHours: r.totalHours,
-      notes:      r.notes,
-    })));
+    res.json({
+      rate: user?.overtimeRatePerHour ?? 0,
+      targets: records.map(r => ({
+        id:            r.id,
+        date:          r.date.toISOString().split("T")[0],
+        counts:        r.counts,
+        totalHours:    r.totalHours,
+        overtime:      r.overtime,
+        overtimeHours: r.overtimeHours,
+        notes:         r.notes,
+      })),
+    });
   } catch (err) {
     console.error("getMyTargets:", err);
     res.status(500).json({ msg: "Failed to fetch targets" });
@@ -112,7 +191,6 @@ export const getAllTargets = async (req, res) => {
     day.setHours(0, 0, 0, 0);
     const dayEnd = new Date(day); dayEnd.setHours(23, 59, 59, 999);
 
-    /* MANAGER scoped to their dept */
     const deptFilter =
       req.user.role === "MANAGER" && req.user.department
         ? req.user.department
@@ -124,12 +202,12 @@ export const getAllTargets = async (req, res) => {
     const [users, targets] = await Promise.all([
       prisma.user.findMany({
         where:   userWhere,
-        select:  { id: true, name: true, email: true, department: true, designation: true },
+        select:  { id: true, name: true, email: true, department: true, designation: true, overtimeRatePerHour: true },
         orderBy: { name: "asc" },
       }),
       prisma.dailyTarget.findMany({
         where:   { date: { gte: day, lte: dayEnd } },
-        select:  { userId: true, counts: true, totalHours: true, notes: true },
+        select:  { userId: true, counts: true, totalHours: true, overtime: true, overtimeHours: true, notes: true },
       }),
     ]);
 
@@ -137,15 +215,18 @@ export const getAllTargets = async (req, res) => {
     targets.forEach(t => { targetMap[t.userId] = t; });
 
     res.json(users.map(u => ({
-      userId:     u.id,
-      name:       u.name,
-      email:      u.email,
-      department: u.department,
-      designation:u.designation,
-      counts:     targetMap[u.id]?.counts     || null,
-      totalHours: targetMap[u.id]?.totalHours ?? null,
-      notes:      targetMap[u.id]?.notes      || null,
-      submitted:  !!targetMap[u.id],
+      userId:              u.id,
+      name:                u.name,
+      email:               u.email,
+      department:          u.department,
+      designation:         u.designation,
+      overtimeRatePerHour: u.overtimeRatePerHour,
+      counts:              targetMap[u.id]?.counts        || null,
+      totalHours:          targetMap[u.id]?.totalHours    ?? null,
+      overtime:            targetMap[u.id]?.overtime      || null,
+      overtimeHours:       targetMap[u.id]?.overtimeHours ?? 0,
+      notes:               targetMap[u.id]?.notes         || null,
+      submitted:           !!targetMap[u.id],
     })));
   } catch (err) {
     console.error("getAllTargets:", err);
@@ -154,8 +235,8 @@ export const getAllTargets = async (req, res) => {
 };
 
 /* ============================================================
-   GET MONTHLY SUMMARY  —  GET /api/targets/summary?month=&year=&userId=
-   Admin / HR / Manager — shows each employee's total per day
+   GET MONTHLY SUMMARY  —  GET /api/targets/summary?month=&year=
+   Admin / HR / Manager
 ============================================================ */
 export const getMonthlySummary = async (req, res) => {
   try {
@@ -176,12 +257,12 @@ export const getMonthlySummary = async (req, res) => {
     const [users, targets] = await Promise.all([
       prisma.user.findMany({
         where:   userWhere,
-        select:  { id: true, name: true, department: true },
+        select:  { id: true, name: true, department: true, overtimeRatePerHour: true },
         orderBy: { name: "asc" },
       }),
       prisma.dailyTarget.findMany({
         where:   { date: { gte: start, lte: end } },
-        select:  { userId: true, date: true, totalHours: true, counts: true },
+        select:  { userId: true, date: true, totalHours: true, overtimeHours: true, counts: true },
         orderBy: { date: "asc" },
       }),
     ]);
@@ -190,19 +271,28 @@ export const getMonthlySummary = async (req, res) => {
     targets.forEach(t => {
       if (!byUser[t.userId]) byUser[t.userId] = [];
       byUser[t.userId].push({
-        date:       t.date.toISOString().split("T")[0],
-        totalHours: t.totalHours,
-        counts:     t.counts,
+        date:          t.date.toISOString().split("T")[0],
+        totalHours:    t.totalHours,
+        overtimeHours: t.overtimeHours,
+        counts:        t.counts,
       });
     });
 
-    res.json(users.map(u => ({
-      userId:     u.id,
-      name:       u.name,
-      department: u.department,
-      targets:    byUser[u.id] || [],
-      totalHours: (byUser[u.id] || []).reduce((s, d) => s + d.totalHours, 0).toFixed(2),
-    })));
+    res.json(users.map(u => {
+      const days          = byUser[u.id] || [];
+      const totalHours    = days.reduce((s, d) => s + d.totalHours, 0);
+      const overtimeHours = days.reduce((s, d) => s + (d.overtimeHours || 0), 0);
+      return {
+        userId:              u.id,
+        name:                u.name,
+        department:          u.department,
+        overtimeRatePerHour: u.overtimeRatePerHour,
+        targets:             days,
+        totalHours:          totalHours.toFixed(2),
+        overtimeHours:       overtimeHours.toFixed(2),
+        overtimePay:         (overtimeHours * u.overtimeRatePerHour).toFixed(2),
+      };
+    }));
   } catch (err) {
     console.error("getMonthlySummary:", err);
     res.status(500).json({ msg: "Failed to fetch summary" });

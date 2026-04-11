@@ -3,8 +3,8 @@ import Layout from "../../components/Layout";
 import api from "../../api/axios";
 import {
   FaCalendarAlt, FaChartBar, FaClock, FaArrowLeft, FaArrowRight,
-  FaSyncAlt, FaCheckCircle, FaTimesCircle, FaUsers, FaBuilding,
-  FaSearch, FaDownload,
+  FaSyncAlt, FaCheckCircle, FaTimesCircle, FaBuilding,
+  FaSearch, FaDownload, FaRegClock, FaRupeeSign,
 } from "react-icons/fa";
 
 const RATES = {
@@ -35,12 +35,13 @@ const MONTH_NAMES = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct"
 const DEPTS = ["All","SQ","Spiideo","Annotation","Vidswap"];
 
 const fmtDate = (d) => d.toISOString().split("T")[0];
+const fmtINR  = (n) => `₹${Number(n).toLocaleString("en-IN",{minimumFractionDigits:2,maximumFractionDigits:2})}`;
 
 export default function AllTargets() {
   const currentUser = JSON.parse(localStorage.getItem("user") || "{}");
   const isManager   = currentUser.role === "MANAGER";
 
-  const [tab,      setTab]      = useState("daily");   // daily | monthly
+  const [tab,      setTab]      = useState("daily");
   const [date,     setDate]     = useState(fmtDate(new Date()));
   const [month,    setMonth]    = useState(new Date().getMonth() + 1);
   const [year,     setYear]     = useState(new Date().getFullYear());
@@ -75,8 +76,8 @@ export default function AllTargets() {
   }, [month, year, dept]);
 
   useEffect(() => {
-    if (tab === "daily")   loadDaily();
-    else                   loadSummary();
+    if (tab === "daily")  loadDaily();
+    else                  loadSummary();
   }, [tab, loadDaily, loadSummary]);
 
   const shiftDate = (dir) => {
@@ -86,7 +87,6 @@ export default function AllTargets() {
   const prevMonth = () => { if (month===1){setMonth(12);setYear(y=>y-1);}else setMonth(m=>m-1); };
   const nextMonth = () => { if (month===12){setMonth(1);setYear(y=>y+1);}else setMonth(m=>m+1); };
 
-  /* filtered daily */
   const filtered = data.filter(u =>
     !search || u.name.toLowerCase().includes(search.toLowerCase()) ||
     (u.department||"").toLowerCase().includes(search.toLowerCase())
@@ -95,18 +95,22 @@ export default function AllTargets() {
   const submitted    = filtered.filter(u => u.submitted).length;
   const notSubmitted = filtered.filter(u => !u.submitted).length;
   const totalHrs     = filtered.reduce((s,u) => s + (u.totalHours||0), 0);
+  const totalOtHrs   = filtered.reduce((s,u) => s + (u.overtimeHours||0), 0);
 
   /* ── CSV Export ── */
   const exportCSV = () => {
     const rows = [
-      ["Name","Department","Date",...ALL_COLS.map(c=>c.label),"Total Hours","Notes"],
+      ["Name","Department","Date",...ALL_COLS.map(c=>c.label),"Total Hours","OT Hours","OT Pay","Notes"],
       ...filtered.map(u => [
         u.name, u.department||"", date,
         ...ALL_COLS.map(c => u.counts?.[c.key] || 0),
-        u.totalHours?.toFixed(2)||"0", u.notes||"",
+        u.totalHours?.toFixed(2)||"0",
+        (u.overtimeHours||0).toFixed(2),
+        ((u.overtimeHours||0) * (u.overtimeRatePerHour||0)).toFixed(2),
+        u.notes||"",
       ]),
     ];
-    const csv = rows.map(r => r.map(v => `"${v}"`).join(",")).join("\n");
+    const csv = rows.map(r => r.map(v=>`"${v}"`).join(",")).join("\n");
     const a   = document.createElement("a");
     a.href    = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
     a.download = `targets-${date}.csv`;
@@ -120,14 +124,22 @@ export default function AllTargets() {
         <div className="flex items-start justify-between flex-wrap gap-4">
           <div>
             <h1 className="text-2xl font-bold">Team Productivity Targets</h1>
-            <p className="text-indigo-200 text-sm mt-1">Monitor daily targets and working hours for all employees</p>
+            <p className="text-indigo-200 text-sm mt-1">Monitor daily targets and overtime for all employees</p>
           </div>
           <div className="flex gap-2 flex-wrap">
             {tab === "daily" && (
-              <div className="bg-white/15 border border-white/20 rounded-xl px-4 py-2 text-center">
-                <div className="text-xl font-black">{totalHrs.toFixed(2)}</div>
-                <div className="text-indigo-200 text-[10px]">Team Total Hrs</div>
-              </div>
+              <>
+                <div className="bg-white/15 border border-white/20 rounded-xl px-4 py-2 text-center">
+                  <div className="text-xl font-black">{totalHrs.toFixed(2)}</div>
+                  <div className="text-indigo-200 text-[10px]">Team Reg Hrs</div>
+                </div>
+                {totalOtHrs > 0 && (
+                  <div className="bg-amber-400/30 border border-amber-300/40 rounded-xl px-4 py-2 text-center">
+                    <div className="text-xl font-black text-amber-100">{totalOtHrs.toFixed(2)}</div>
+                    <div className="text-amber-200 text-[10px]">Team OT Hrs</div>
+                  </div>
+                )}
+              </>
             )}
             <div className="bg-white/15 border border-white/20 rounded-xl px-4 py-2 text-center">
               <div className="text-xl font-black">{submitted}</div>
@@ -174,7 +186,6 @@ export default function AllTargets() {
           </>
         )}
 
-        {/* DEPT FILTER — hidden for MANAGER (locked to their dept) */}
         {!isManager && (
           <div className="flex items-center gap-2 border border-gray-200 rounded-xl px-3 py-2">
             <FaBuilding className="text-gray-400" size={12}/>
@@ -185,7 +196,6 @@ export default function AllTargets() {
           </div>
         )}
 
-        {/* SEARCH */}
         <div className="flex items-center gap-2 border border-gray-200 rounded-xl px-3 py-2 flex-1 min-w-[160px]">
           <FaSearch className="text-gray-400" size={12}/>
           <input value={search} onChange={e => setSearch(e.target.value)}
@@ -214,17 +224,19 @@ export default function AllTargets() {
         /* ════════════════ DAILY VIEW ════════════════ */
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="border-collapse text-xs" style={{ minWidth: 1200 }}>
+            <table className="border-collapse text-xs" style={{ minWidth: 1300 }}>
               <thead>
                 {/* RATE ROW */}
                 <tr className="bg-gray-50">
-                  <th className="border border-gray-200 px-4 py-2 text-left text-gray-500 font-semibold sticky left-0 bg-gray-50 z-10">Employee</th>
+                  <th className="border border-gray-200 px-4 py-2 text-left text-gray-500 font-semibold sticky left-0 bg-gray-50 z-10 whitespace-nowrap">Employee</th>
                   {GROUPS.map(g => g.cols.map(c => (
                     <th key={c.key} className="border border-gray-200 px-2 py-1.5 text-center text-gray-400 font-bold bg-gray-50" style={{minWidth:54}}>
                       {c.rate}
                     </th>
                   )))}
-                  <th className="border border-gray-200 px-3 py-1.5 text-center font-bold text-indigo-700 bg-indigo-50 whitespace-nowrap">TOTAL HRS</th>
+                  <th className="border border-gray-200 px-3 py-1.5 text-center font-bold text-indigo-700 bg-indigo-50 whitespace-nowrap">REG HRS</th>
+                  <th className="border border-gray-200 px-3 py-1.5 text-center font-bold text-amber-700 bg-amber-50 whitespace-nowrap">OT HRS</th>
+                  <th className="border border-gray-200 px-3 py-1.5 text-center font-bold text-green-700 bg-green-50 whitespace-nowrap">OT PAY</th>
                 </tr>
                 {/* GROUP ROW */}
                 <tr>
@@ -236,6 +248,8 @@ export default function AllTargets() {
                     </th>
                   ))}
                   <th className="border border-gray-300 bg-indigo-50"/>
+                  <th className="border border-gray-300 bg-amber-50"/>
+                  <th className="border border-gray-300 bg-green-50"/>
                 </tr>
                 {/* COL LABELS */}
                 <tr>
@@ -246,57 +260,86 @@ export default function AllTargets() {
                     </th>
                   )))}
                   <th className="border border-gray-200 bg-indigo-50"/>
+                  <th className="border border-gray-200 bg-amber-50"/>
+                  <th className="border border-gray-200 bg-green-50"/>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
                 {filtered.length === 0 ? (
-                  <tr><td colSpan={ALL_COLS.length + 2} className="py-16 text-center text-gray-400">No employees found</td></tr>
-                ) : filtered.map(u => (
-                  <tr key={u.userId} className={`hover:bg-indigo-50/30 transition-colors ${!u.submitted ? "opacity-60" : ""}`}>
-                    {/* NAME */}
-                    <td className="border border-gray-100 px-4 py-3 sticky left-0 bg-white z-10">
-                      <div className="flex items-center gap-2">
-                        {u.submitted
-                          ? <FaCheckCircle className="text-green-500 flex-shrink-0" size={12}/>
-                          : <FaTimesCircle className="text-gray-300 flex-shrink-0" size={12}/>
-                        }
-                        <div>
-                          <div className="font-semibold text-gray-800 whitespace-nowrap">{u.name}</div>
-                          <div className="text-[10px] text-gray-400">{u.department || "—"}</div>
-                        </div>
-                      </div>
-                    </td>
-
-                    {/* COUNTS */}
-                    {ALL_COLS.map(c => {
-                      const count = u.counts?.[c.key] || 0;
-                      return (
-                        <td key={c.key} className="border border-gray-100 px-2 py-2 text-center">
-                          {count > 0
-                            ? <span className="font-bold text-gray-800">{count}</span>
-                            : <span className="text-gray-200">—</span>
+                  <tr><td colSpan={ALL_COLS.length + 4} className="py-16 text-center text-gray-400">No employees found</td></tr>
+                ) : filtered.map(u => {
+                  const otPay = (u.overtimeHours||0) * (u.overtimeRatePerHour||0);
+                  return (
+                    <tr key={u.userId} className={`hover:bg-indigo-50/30 transition-colors ${!u.submitted ? "opacity-55" : ""}`}>
+                      {/* NAME */}
+                      <td className="border border-gray-100 px-4 py-3 sticky left-0 bg-white z-10">
+                        <div className="flex items-center gap-2">
+                          {u.submitted
+                            ? <FaCheckCircle className="text-green-500 flex-shrink-0" size={12}/>
+                            : <FaTimesCircle className="text-gray-300 flex-shrink-0" size={12}/>
                           }
-                        </td>
-                      );
-                    })}
+                          <div>
+                            <div className="font-semibold text-gray-800 whitespace-nowrap">{u.name}</div>
+                            <div className="text-[10px] text-gray-400">{u.department || "—"}</div>
+                          </div>
+                        </div>
+                      </td>
 
-                    {/* TOTAL */}
-                    <td className="border border-gray-100 px-3 py-2 text-center">
-                      {u.submitted
-                        ? <span className="inline-flex items-center gap-1 font-black text-indigo-700 text-sm whitespace-nowrap">
-                            <FaClock size={10} className="text-indigo-400"/>
-                            {(u.totalHours||0).toFixed(2)}
-                          </span>
-                        : <span className="text-gray-300 text-xs">Not submitted</span>
-                      }
-                    </td>
-                  </tr>
-                ))}
+                      {/* COUNTS */}
+                      {ALL_COLS.map(c => {
+                        const count = u.counts?.[c.key] || 0;
+                        return (
+                          <td key={c.key} className="border border-gray-100 px-2 py-2 text-center">
+                            {count > 0
+                              ? <span className="font-bold text-gray-800">{count}</span>
+                              : <span className="text-gray-200">—</span>
+                            }
+                          </td>
+                        );
+                      })}
+
+                      {/* REG TOTAL */}
+                      <td className="border border-gray-100 px-3 py-2 text-center bg-indigo-50/30">
+                        {u.submitted
+                          ? <span className="inline-flex items-center gap-1 font-black text-indigo-700 text-sm whitespace-nowrap">
+                              <FaClock size={10} className="text-indigo-400"/>
+                              {(u.totalHours||0).toFixed(2)}
+                            </span>
+                          : <span className="text-gray-300 text-xs">—</span>
+                        }
+                      </td>
+
+                      {/* OT HOURS */}
+                      <td className="border border-gray-100 px-3 py-2 text-center bg-amber-50/30">
+                        {(u.overtimeHours||0) > 0
+                          ? <span className="inline-flex items-center gap-1 font-bold text-amber-700 text-sm whitespace-nowrap">
+                              <FaRegClock size={10} className="text-amber-400"/>
+                              {(u.overtimeHours||0).toFixed(2)}
+                            </span>
+                          : <span className="text-gray-200">—</span>
+                        }
+                      </td>
+
+                      {/* OT PAY */}
+                      <td className="border border-gray-100 px-3 py-2 text-center bg-green-50/30">
+                        {(u.overtimeRatePerHour||0) > 0 && (u.overtimeHours||0) > 0
+                          ? <span className="inline-flex items-center gap-0.5 font-semibold text-green-700 text-xs whitespace-nowrap">
+                              <FaRupeeSign size={9}/>
+                              {otPay.toFixed(2)}
+                            </span>
+                          : (u.overtimeRatePerHour||0) === 0
+                            ? <span className="text-gray-300 text-[10px]">No rate</span>
+                            : <span className="text-gray-200">—</span>
+                        }
+                      </td>
+                    </tr>
+                  );
+                })}
 
                 {/* TEAM TOTAL ROW */}
                 {filtered.some(u=>u.submitted) && (
                   <tr className="bg-indigo-50 font-bold">
-                    <td className="border border-indigo-200 px-4 py-2 text-indigo-700 sticky left-0 bg-indigo-50 z-10">TEAM TOTAL</td>
+                    <td className="border border-indigo-200 px-4 py-2 text-indigo-700 sticky left-0 bg-indigo-50 z-10 text-xs">TEAM TOTAL</td>
                     {ALL_COLS.map(c => {
                       const tot = filtered.reduce((s,u) => s+(Number(u.counts?.[c.key])||0), 0);
                       return (
@@ -308,6 +351,13 @@ export default function AllTargets() {
                     <td className="border border-indigo-200 px-3 py-2 text-center text-indigo-800 font-black text-sm whitespace-nowrap">
                       <FaClock size={10} className="inline mr-1 text-indigo-500"/>
                       {totalHrs.toFixed(2)}
+                    </td>
+                    <td className="border border-amber-200 px-3 py-2 text-center text-amber-800 font-black text-sm whitespace-nowrap bg-amber-50">
+                      <FaRegClock size={10} className="inline mr-1 text-amber-500"/>
+                      {totalOtHrs.toFixed(2)}
+                    </td>
+                    <td className="border border-green-200 px-3 py-2 text-center bg-green-50 text-green-800 font-black text-xs whitespace-nowrap">
+                      {fmtINR(filtered.reduce((s,u) => s + (u.overtimeHours||0)*(u.overtimeRatePerHour||0), 0))}
                     </td>
                   </tr>
                 )}
@@ -331,20 +381,19 @@ export default function AllTargets() {
                     <th className="px-5 py-3 font-semibold">Employee</th>
                     <th className="px-4 py-3 font-semibold">Dept</th>
                     <th className="px-4 py-3 font-semibold text-center">Days</th>
-                    <th className="px-4 py-3 font-semibold text-center">Total Hours</th>
+                    <th className="px-4 py-3 font-semibold text-center">Reg Hours</th>
                     <th className="px-4 py-3 font-semibold text-center">Avg/Day</th>
                     <th className="px-4 py-3 font-semibold text-center">Best Day</th>
-                    <th className="px-4 py-3 font-semibold">Daily Breakdown</th>
+                    <th className="px-4 py-3 font-semibold text-center text-amber-600">OT Hours</th>
+                    <th className="px-4 py-3 font-semibold text-center text-amber-600">Rate/Hr</th>
+                    <th className="px-4 py-3 font-semibold text-center text-green-600">OT Pay</th>
+                    <th className="px-4 py-3 font-semibold">Days Breakdown</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
                   {summary.map(u => {
-                    const best = u.targets.length
-                      ? Math.max(...u.targets.map(t=>t.totalHours))
-                      : 0;
-                    const avg  = u.targets.length
-                      ? (Number(u.totalHours)/u.targets.length).toFixed(2)
-                      : "0";
+                    const best = u.targets.length ? Math.max(...u.targets.map(t=>t.totalHours)) : 0;
+                    const avg  = u.targets.length ? (Number(u.totalHours)/u.targets.length).toFixed(2) : "0";
                     return (
                       <tr key={u.userId} className="hover:bg-gray-50/50 transition-colors">
                         <td className="px-5 py-3 font-semibold text-gray-800">{u.name}</td>
@@ -366,11 +415,38 @@ export default function AllTargets() {
                             {best.toFixed(2)}h
                           </span>
                         </td>
+                        {/* OT HOURS */}
+                        <td className="px-4 py-3 text-center">
+                          {Number(u.overtimeHours) > 0
+                            ? <span className="inline-flex items-center gap-1 font-bold text-amber-700 text-sm">
+                                <FaRegClock size={10} className="text-amber-400"/>
+                                {Number(u.overtimeHours).toFixed(2)}
+                              </span>
+                            : <span className="text-gray-300 text-xs">—</span>
+                          }
+                        </td>
+                        {/* RATE */}
+                        <td className="px-4 py-3 text-center text-xs text-gray-500">
+                          {(u.overtimeRatePerHour||0) > 0
+                            ? <span className="flex items-center justify-center gap-0.5"><FaRupeeSign size={9}/>{Number(u.overtimeRatePerHour).toFixed(2)}</span>
+                            : <span className="text-gray-300">—</span>
+                          }
+                        </td>
+                        {/* OT PAY */}
+                        <td className="px-4 py-3 text-center">
+                          {Number(u.overtimePay) > 0
+                            ? <span className="font-black text-green-700 text-sm">{fmtINR(u.overtimePay)}</span>
+                            : <span className="text-gray-300 text-xs">—</span>
+                          }
+                        </td>
                         <td className="px-4 py-3">
                           <div className="flex gap-1 flex-wrap max-w-xs">
                             {u.targets.slice(-15).map(t => (
-                              <div key={t.date} title={`${t.date}: ${t.totalHours}h`}
+                              <div key={t.date}
+                                title={`${t.date}: ${t.totalHours}h reg${t.overtimeHours>0?` + ${t.overtimeHours}h OT`:""}`}
                                 className={`w-6 h-6 rounded text-[8px] font-bold flex items-center justify-center text-white ${
+                                  t.overtimeHours>0?"ring-2 ring-amber-400":""
+                                } ${
                                   t.totalHours>=8?"bg-green-500":t.totalHours>=5?"bg-blue-500":t.totalHours>0?"bg-amber-400":"bg-gray-200"
                                 }`}>
                                 {new Date(t.date+"T00:00:00").getDate()}
@@ -392,7 +468,16 @@ export default function AllTargets() {
                       <FaClock size={10} className="inline mr-1 text-indigo-500"/>
                       {summary.reduce((s,u)=>s+Number(u.totalHours),0).toFixed(2)}
                     </td>
-                    <td colSpan={3} className="px-4 py-3"/>
+                    <td colSpan={2} className="px-4 py-3"/>
+                    <td className="px-4 py-3 text-center text-amber-800 font-black">
+                      <FaRegClock size={10} className="inline mr-1 text-amber-500"/>
+                      {summary.reduce((s,u)=>s+Number(u.overtimeHours||0),0).toFixed(2)}
+                    </td>
+                    <td className="px-4 py-3"/>
+                    <td className="px-4 py-3 text-center text-green-800 font-black text-sm">
+                      {fmtINR(summary.reduce((s,u)=>s+Number(u.overtimePay||0),0))}
+                    </td>
+                    <td className="px-4 py-3"/>
                   </tr>
                 </tbody>
               </table>

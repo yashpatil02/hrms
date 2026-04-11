@@ -6,15 +6,21 @@ import {
   getMyTargets,
   getAllTargets,
   getMonthlySummary,
+  getOvertimeRate,
+  updateOvertimeRate,
 } from "../controllers/target.controller.js";
 
 const router = express.Router();
 
-/* Employee — save/update own daily target */
+/* Employee — save/update own daily target (includes overtime) */
 router.post("/",         auth, saveTarget);
 
-/* Employee — get own targets for a month */
+/* Employee — get own targets for a month + overtime rate */
 router.get("/my",        auth, getMyTargets);
+
+/* Employee — get/set their overtime hourly rate */
+router.get("/rate",      auth, getOvertimeRate);
+router.patch("/rate",    auth, updateOvertimeRate);
 
 /* Admin / HR / Manager — all employees' targets for a date */
 router.get("/all",       auth, role(["ADMIN","HR","MANAGER"]), getAllTargets);

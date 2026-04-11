@@ -24,6 +24,7 @@ model User {
   designation    String?
   joinDate       DateTime?
   avatar         String?   // URL or base64 (optional)
+  overtimeRatePerHour Float @default(0)
 
   attendances Attendance[]
   leaves      Leave[]
@@ -374,14 +375,16 @@ enum PayrollStatus {
 
 // ── DAILY TARGET / PRODUCTIVITY ──
 model DailyTarget {
-  id         Int      @id @default(autoincrement())
-  userId     Int
-  date       DateTime
-  counts     Json     // { soccerStdSingle: 2, soccerStdDouble: 1, ... }
-  totalHours Float    @default(0)
-  notes      String?
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id            Int      @id @default(autoincrement())
+  userId        Int
+  date          DateTime
+  counts        Json
+  totalHours    Float    @default(0)
+  overtime      Json?
+  overtimeHours Float    @default(0)
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
