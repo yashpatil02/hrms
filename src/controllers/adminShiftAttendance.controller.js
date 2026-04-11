@@ -1,5 +1,6 @@
 import prisma from "../../prisma/client.js";
 import { createNotification } from "../utils/createNotification.js";
+import { logAudit } from "../services/audit.service.js";
 
 /* ============================================================
    HELPER — safe date (no timezone shift)
@@ -182,6 +183,13 @@ export const saveShiftAttendance = async (req, res) => {
       type:        "SUCCESS",
       entity:      "ATTENDANCE",
       socketEvent: "attendance:marked",
+    });
+
+    logAudit({
+      actorId: req.user.id, actorName: req.user.name, actorRole: req.user.role,
+      action: "ATTENDANCE_UPDATED", entity: "ATTENDANCE",
+      description: `Saved shift attendance for ${date} (${shift}) — ${toCreate.length} created, ${toUpdate.length} updated`,
+      metadata: { date, shift, created: toCreate.length, updated: toUpdate.length },
     });
 
     res.json({

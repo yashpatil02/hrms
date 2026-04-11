@@ -121,7 +121,8 @@ const FULL_MENU = [
     section: "REPORTS",
     roles: ["ADMIN", "HR"],
     items: [
-      { name: "HR Analytics", path: "/admin/analytics", icon: <FaPollH /> },
+      { name: "HR Analytics",       path: "/admin/analytics",        icon: <FaPollH /> },
+      { name: "Management Audit",   path: "/admin/management-audit", icon: <FaShieldAlt /> },
     ],
   },
   {

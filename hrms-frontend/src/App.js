@@ -43,6 +43,7 @@ import AllTargets from "./pages/admin/AllTargets";
 import QCEntry from "./pages/admin/QCEntry";
 import AllQCErrors from "./pages/admin/AllQCErrors";
 import MyErrors from "./pages/employee/MyErrors";
+import ManagementAudit from "./pages/admin/ManagementAudit";
 
 function App() {
   return (
@@ -364,6 +365,14 @@ function App() {
         <Route
           path="/my-errors"
           element={<ProtectedRoute><MyErrors /></ProtectedRoute>}
+        />
+
+        {/* ===========================
+            MANAGEMENT AUDIT TRAIL
+        =========================== */}
+        <Route
+          path="/admin/management-audit"
+          element={<AdminRoute><ManagementAudit /></AdminRoute>}
         />
 
         {/* ===========================

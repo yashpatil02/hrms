@@ -4,6 +4,7 @@ import {
   sendPayrollGeneratedEmail,
   sendPayrollStatusEmail,
 } from "../utils/mailer.js";
+import { logAudit } from "../services/audit.service.js";
 
 const prisma = new PrismaClient();
 
@@ -254,6 +255,13 @@ export const generatePayroll = async (req, res) => {
       }
     });
 
+    logAudit({
+      actorId: req.user.id, actorName: req.user.name, actorRole: req.user.role,
+      action: "PAYROLL_GENERATED", entity: "PAYROLL",
+      description: `Generated payroll for ${created.length} employee(s) — ${month}/${year}`,
+      metadata: { month, year, count: created.length },
+    });
+
     res.json({ message: "Payroll generated", month, year, results });
   } catch (err) {
     console.error("generatePayroll error:", err);
@@ -341,6 +349,14 @@ export const updatePayrollStatus = async (req, res) => {
         netSalary: payroll.netSalary,
       }, status);
     }
+
+    logAudit({
+      actorId: req.user.id, actorName: req.user.name, actorRole: req.user.role,
+      action: `PAYROLL_${status}`, entity: "PAYROLL", entityId: payroll.id,
+      description: `Marked payroll as ${status} for ${payroll.user?.name} (${payroll.month}/${payroll.year}) — ₹${payroll.netSalary?.toLocaleString("en-IN")}`,
+      targetUserId: payroll.user?.id, targetUserName: payroll.user?.name,
+      metadata: { month: payroll.month, year: payroll.year, netSalary: payroll.netSalary, status, remarks },
+    });
 
     res.json({ message: `Payroll marked as ${status}`, payroll });
   } catch (err) {

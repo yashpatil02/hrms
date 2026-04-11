@@ -5,6 +5,7 @@ import {
   sendLeaveApprovedEmail,
   sendLeaveRejectedEmail,
 } from "../utils/mailer.js";
+import { logAudit } from "../services/audit.service.js";
 
 /* ============================================================
    HELPER
@@ -304,6 +305,14 @@ export const approveLeave = async (req, res) => {
       reason:   leave.reason,
     });
 
+    logAudit({
+      actorId: req.user.id, actorName: req.user.name, actorRole: req.user.role,
+      action: "LEAVE_APPROVED", entity: "LEAVE", entityId: leave.id,
+      description: `Approved ${days}-day leave for ${leave.user.name} (${fmtDate(leave.fromDate)} – ${fmtDate(leave.toDate)})`,
+      targetUserId: leave.user.id, targetUserName: leave.user.name,
+      metadata: { fromDate: leave.fromDate, toDate: leave.toDate, days, reason: leave.reason },
+    });
+
     res.json({ msg: "Leave approved" });
   } catch (err) {
     res.status(500).json({ msg: "Approval failed" });
@@ -342,6 +351,14 @@ export const rejectLeave = async (req, res) => {
       toDate:   fmtDate(leave.toDate),
       days,
     }, rejectReason);
+
+    logAudit({
+      actorId: req.user.id, actorName: req.user.name, actorRole: req.user.role,
+      action: "LEAVE_REJECTED", entity: "LEAVE", entityId: leave.id,
+      description: `Rejected leave for ${leave.user.name} (${fmtDate(leave.fromDate)} – ${fmtDate(leave.toDate)}). Reason: ${rejectReason}`,
+      targetUserId: leave.user.id, targetUserName: leave.user.name,
+      metadata: { fromDate: leave.fromDate, toDate: leave.toDate, days: diffDays(leave.fromDate, leave.toDate), rejectReason },
+    });
 
     res.json({ msg: "Leave rejected" });
   } catch (err) {

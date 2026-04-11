@@ -21,6 +21,7 @@ import profileRoutes from "./routes/profile.routes.js";
 import analyticsRoutes from "./routes/analytics.routes.js";
 import targetRoutes from "./routes/target.routes.js";
 import qcRoutes from "./routes/qc.routes.js";
+import auditRoutes from "./routes/audit.routes.js";
 
 const app = express();
 
@@ -126,6 +127,9 @@ app.use("/api/targets", targetRoutes);
 
 // 🔍 QC ERROR TRACKING
 app.use("/api/qc", qcRoutes);
+
+// 📋 MANAGEMENT AUDIT TRAIL
+app.use("/api/audit", auditRoutes);
 
 /* ================================
    HEALTH CHECK (for keep-alive ping)

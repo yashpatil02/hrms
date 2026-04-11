@@ -1,4 +1,5 @@
 import prisma from "../../prisma/client.js";
+import { logAudit } from "../services/audit.service.js";
 
 /* ── helper: create a notification ── */
 const notify = (userId, title, message, type, entityId) =>
@@ -90,6 +91,13 @@ export const createSession = async (req, res) => {
         )
       )
     );
+
+    logAudit({
+      actorId: managerId, actorName: req.user.name, actorRole: req.user.role,
+      action: "QC_SESSION_CREATED", entity: "QC", entityId: session.id,
+      description: `Created QC session "${gameName}" (${sport} / ${league} / ${qcType}) — ${assignedErrors.length} error(s) logged`,
+      metadata: { gameName, sport, league, qcType, gameDate, errorsLogged: assignedErrors.length, employees: empList.length },
+    });
 
     res.status(201).json({ msg: "Session created", sessionId: session.id, errorsLogged: assignedErrors.length });
   } catch (err) {
@@ -439,6 +447,15 @@ export const resolveDispute = async (req, res) => {
         qcError.sessionId
       );
     }
+
+    logAudit({
+      actorId: req.user.id, actorName: req.user.name, actorRole: req.user.role,
+      action: action === "APPROVED" ? "QC_DISPUTE_APPROVED" : "QC_DISPUTE_REJECTED",
+      entity: "QC", entityId: qcError.sessionId,
+      description: `${action === "APPROVED" ? "Approved" : "Rejected"} dispute for error "${qcError.errorText}" at ${qcError.timestamp} in "${qcError.session.gameName}" — ${action === "APPROVED" ? "error deleted" : "error kept valid"}`,
+      targetUserId: employee.id, targetUserName: employee.name,
+      metadata: { errorText: qcError.errorText, timestamp: qcError.timestamp, action },
+    });
 
     res.json({ msg: `Dispute ${action.toLowerCase()}`, action });
   } catch (err) {

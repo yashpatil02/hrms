@@ -1,6 +1,7 @@
 import prisma from "../../prisma/client.js";
 import bcrypt from "bcrypt";
 import { createNotification } from "../utils/createNotification.js";
+import { logAudit } from "../services/audit.service.js";
 
 /* ================================
    GET ALL USERS (with stats)
@@ -157,6 +158,14 @@ export const deleteUser = async (req, res) => {
       socketEvent: "user:deleted",
     });
 
+    logAudit({
+      actorId: req.user.id, actorName: req.user.name, actorRole: req.user.role,
+      action: "USER_DELETED", entity: "USER",
+      description: `Deleted user ${user.name} (${user.email}) — role was ${user.role}`,
+      targetUserName: user.name,
+      metadata: { email: user.email, role: user.role, department: user.department },
+    });
+
     res.json({ msg: "User deleted successfully" });
   } catch (err) {
     console.error("deleteUser error:", err);
@@ -189,6 +198,14 @@ export const updateUserRole = async (req, res) => {
       entity:      "USER",
       entityId:    id,
       socketEvent: "notification:new",
+    });
+
+    logAudit({
+      actorId: req.user.id, actorName: req.user.name, actorRole: req.user.role,
+      action: "USER_ROLE_CHANGED", entity: "USER", entityId: id,
+      description: `Changed ${user.name}'s role from ${user.role} → ${role}`,
+      targetUserId: id, targetUserName: user.name,
+      metadata: { oldRole: user.role, newRole: role },
     });
 
     res.json({ msg: "Role updated", user: updated });

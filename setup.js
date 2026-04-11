@@ -129,7 +129,36 @@ async function ensureQCTables() {
       ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "overtimeRatePerHour" DOUBLE PRECISION NOT NULL DEFAULT 0
     `);
 
-    console.log("✅ QC tables created successfully.");
+    // Management Audit Trail table
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "ManagementAudit" (
+        "id"             SERIAL PRIMARY KEY,
+        "actorId"        INTEGER NOT NULL,
+        "actorName"      TEXT NOT NULL,
+        "actorRole"      TEXT NOT NULL,
+        "action"         TEXT NOT NULL,
+        "entity"         TEXT NOT NULL,
+        "entityId"       INTEGER,
+        "description"    TEXT NOT NULL,
+        "targetUserId"   INTEGER,
+        "targetUserName" TEXT,
+        "metadata"       JSONB,
+        "createdAt"      TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY ("actorId") REFERENCES "User"("id") ON DELETE CASCADE
+      )
+    `);
+    const auditIndexes = [
+      `CREATE INDEX IF NOT EXISTS "ManagementAudit_actorId_idx"      ON "ManagementAudit"("actorId")`,
+      `CREATE INDEX IF NOT EXISTS "ManagementAudit_action_idx"       ON "ManagementAudit"("action")`,
+      `CREATE INDEX IF NOT EXISTS "ManagementAudit_entity_idx"       ON "ManagementAudit"("entity")`,
+      `CREATE INDEX IF NOT EXISTS "ManagementAudit_createdAt_idx"    ON "ManagementAudit"("createdAt")`,
+      `CREATE INDEX IF NOT EXISTS "ManagementAudit_targetUserId_idx" ON "ManagementAudit"("targetUserId")`,
+    ];
+    for (const sql of auditIndexes) {
+      await prisma.$executeRawUnsafe(sql);
+    }
+
+    console.log("✅ QC tables and ManagementAudit table created successfully.");
   } catch (err) {
     console.error("❌ setup.js error:", err.message);
     // Don't exit — let server start anyway; Prisma will surface errors per-request

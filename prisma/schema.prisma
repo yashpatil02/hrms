@@ -47,6 +47,33 @@ model User {
   qcSessionEmployees  QCSessionEmployee[]  @relation("QCEmployee")
   qcErrors            QCError[]            @relation("QCErrors")
   qcDisputes          QCDispute[]          @relation("QCDisputes")
+
+  // Management audit
+  managementAudits    ManagementAudit[]    @relation("AuditActor")
+}
+
+// ── MANAGEMENT AUDIT TRAIL ──
+model ManagementAudit {
+  id             Int      @id @default(autoincrement())
+  actorId        Int
+  actorName      String
+  actorRole      String
+  action         String
+  entity         String
+  entityId       Int?
+  description    String
+  targetUserId   Int?
+  targetUserName String?
+  metadata       Json?
+  createdAt      DateTime @default(now())
+
+  actor User @relation("AuditActor", fields: [actorId], references: [id])
+
+  @@index([actorId])
+  @@index([action])
+  @@index([entity])
+  @@index([createdAt])
+  @@index([targetUserId])
 }
 
 model Attendance {
