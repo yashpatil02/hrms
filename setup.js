@@ -129,6 +129,29 @@ async function ensureQCTables() {
       ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "overtimeRatePerHour" DOUBLE PRECISION NOT NULL DEFAULT 0
     `);
 
+    // New profile/personal/bank/employment fields
+    const newUserColumns = [
+      `ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "dateOfBirth" TIMESTAMP(3)`,
+      `ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "gender" TEXT`,
+      `ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "bloodGroup" TEXT`,
+      `ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "address" TEXT`,
+      `ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "city" TEXT`,
+      `ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "state" TEXT`,
+      `ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "pincode" TEXT`,
+      `ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "emergencyName" TEXT`,
+      `ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "emergencyPhone" TEXT`,
+      `ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "emergencyRel" TEXT`,
+      `ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "bankName" TEXT`,
+      `ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "bankAccount" TEXT`,
+      `ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "bankIFSC" TEXT`,
+      `ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "bankHolder" TEXT`,
+      `ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "employeeCode" TEXT`,
+      `ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "panNumber" TEXT`,
+    ];
+    for (const sql of newUserColumns) {
+      await prisma.$executeRawUnsafe(sql);
+    }
+
     // Management Audit Trail table
     await prisma.$executeRawUnsafe(`
       CREATE TABLE IF NOT EXISTS "ManagementAudit" (

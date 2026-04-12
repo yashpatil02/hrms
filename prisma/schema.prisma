@@ -26,6 +26,30 @@ model User {
   avatar         String?   // URL or base64 (optional)
   overtimeRatePerHour Float @default(0)
 
+  // ── PERSONAL DETAILS ──
+  dateOfBirth    DateTime?
+  gender         String?    // MALE / FEMALE / OTHER
+  bloodGroup     String?
+  address        String?
+  city           String?
+  state          String?
+  pincode        String?
+
+  // ── EMERGENCY CONTACT ──
+  emergencyName  String?
+  emergencyPhone String?
+  emergencyRel   String?    // relation: Father, Mother, Spouse, etc.
+
+  // ── BANK DETAILS ──
+  bankName       String?
+  bankAccount    String?    // store masked on display only
+  bankIFSC       String?
+  bankHolder     String?
+
+  // ── EMPLOYMENT EXTRAS ──
+  employeeCode   String?    // EMP001
+  panNumber      String?
+
   attendances Attendance[]
   leaves      Leave[]
   documents   EmployeeDocument[]

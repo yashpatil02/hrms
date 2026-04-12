@@ -260,3 +260,150 @@ export const updateWeeklyOff = async (req, res) => {
     res.status(500).json({ msg: "Failed to update weekly off" });
   }
 };
+
+/* ================================
+   GET EMPLOYEE FULL PROFILE
+================================ */
+export const getEmployeeFullProfile = async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const now = new Date();
+
+    // Get 3 months of attendance
+    const threeMonthsAgo = new Date(now.getFullYear(), now.getMonth()-2, 1);
+
+    const [user, salaryStructure, payrolls, documents, leaves, attendance, qcErrors] = await Promise.all([
+      prisma.user.findUnique({
+        where: { id },
+        select: {
+          id: true, name: true, email: true, role: true,
+          department: true, designation: true, phone: true,
+          joinDate: true, weeklyOff: true, weekoffBalance: true,
+          avatar: true, overtimeRatePerHour: true, createdAt: true,
+          // personal
+          dateOfBirth: true, gender: true, bloodGroup: true,
+          address: true, city: true, state: true, pincode: true,
+          // emergency
+          emergencyName: true, emergencyPhone: true, emergencyRel: true,
+          // bank
+          bankName: true, bankAccount: true, bankIFSC: true, bankHolder: true,
+          // employment
+          employeeCode: true, panNumber: true,
+        },
+      }),
+      prisma.salaryStructure.findUnique({ where: { userId: id } }),
+      prisma.payroll.findMany({
+        where: { userId: id },
+        orderBy: [{ year: "desc" }, { month: "desc" }],
+        take: 12,
+        select: { id:true, month:true, year:true, grossSalary:true, netSalary:true, totalDeductions:true, status:true, createdAt:true },
+      }),
+      prisma.employeeDocument.findMany({
+        where: { employeeId: id },
+        orderBy: { createdAt: "desc" },
+        select: { id:true, documentType:true, fileName:true, fileUrl:true, createdAt:true, uploadedBy: { select: { name:true } } },
+      }),
+      prisma.leave.findMany({
+        where: { userId: id },
+        orderBy: { createdAt: "desc" },
+        take: 20,
+        select: { id:true, reason:true, fromDate:true, toDate:true, status:true, createdAt:true, rejectReason:true },
+      }),
+      prisma.attendance.findMany({
+        where: { userId: id, date: { gte: threeMonthsAgo } },
+        select: { date:true, dayType:true },
+        orderBy: { date: "desc" },
+      }),
+      prisma.qCError.count({ where: { employeeId: id } }),
+    ]);
+
+    if (!user) return res.status(404).json({ msg: "Employee not found" });
+
+    // Monthly attendance breakdown for last 3 months
+    const monthlyStats = {};
+    for (let i = 0; i <= 2; i++) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+      monthlyStats[key] = { present:0, absent:0, halfDay:0, leaves:0, total:0 };
+    }
+    attendance.forEach(a => {
+      const key = a.date.toISOString().slice(0,7);
+      if (monthlyStats[key]) {
+        monthlyStats[key].total++;
+        if (["FULL","WEEKOFF_PRESENT"].includes(a.dayType)) monthlyStats[key].present++;
+        else if (a.dayType === "ABSENT") monthlyStats[key].absent++;
+        else if (a.dayType === "HALF") monthlyStats[key].halfDay++;
+        else if (["PAID_LEAVE","PAID_HOLIDAY"].includes(a.dayType)) monthlyStats[key].leaves++;
+      }
+    });
+
+    // Leave stats
+    const leaveStats = {
+      total: leaves.length,
+      approved: leaves.filter(l => l.status === "APPROVED").length,
+      pending: leaves.filter(l => l.status === "PENDING").length,
+      rejected: leaves.filter(l => l.status === "REJECTED").length,
+      balance: user.weekoffBalance || 0,
+    };
+
+    res.json({ user, salaryStructure, payrolls, documents, leaves, monthlyStats, leaveStats, qcErrors });
+  } catch (err) {
+    console.error("getEmployeeFullProfile:", err);
+    res.status(500).json({ msg: "Failed to fetch profile" });
+  }
+};
+
+/* ================================
+   UPDATE EMPLOYEE DETAILS
+================================ */
+export const updateEmployeeDetails = async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const {
+      name, phone, department, designation, joinDate,
+      dateOfBirth, gender, bloodGroup,
+      address, city, state, pincode,
+      emergencyName, emergencyPhone, emergencyRel,
+      bankName, bankAccount, bankIFSC, bankHolder,
+      employeeCode, panNumber,
+    } = req.body;
+
+    const data = {};
+    if (name !== undefined)           data.name = name;
+    if (phone !== undefined)          data.phone = phone;
+    if (department !== undefined)     data.department = department;
+    if (designation !== undefined)    data.designation = designation;
+    if (joinDate !== undefined)       data.joinDate = joinDate ? new Date(joinDate) : null;
+    if (dateOfBirth !== undefined)    data.dateOfBirth = dateOfBirth ? new Date(dateOfBirth) : null;
+    if (gender !== undefined)         data.gender = gender;
+    if (bloodGroup !== undefined)     data.bloodGroup = bloodGroup;
+    if (address !== undefined)        data.address = address;
+    if (city !== undefined)           data.city = city;
+    if (state !== undefined)          data.state = state;
+    if (pincode !== undefined)        data.pincode = pincode;
+    if (emergencyName !== undefined)  data.emergencyName = emergencyName;
+    if (emergencyPhone !== undefined) data.emergencyPhone = emergencyPhone;
+    if (emergencyRel !== undefined)   data.emergencyRel = emergencyRel;
+    if (bankName !== undefined)       data.bankName = bankName;
+    if (bankAccount !== undefined)    data.bankAccount = bankAccount;
+    if (bankIFSC !== undefined)       data.bankIFSC = bankIFSC;
+    if (bankHolder !== undefined)     data.bankHolder = bankHolder;
+    if (employeeCode !== undefined)   data.employeeCode = employeeCode;
+    if (panNumber !== undefined)      data.panNumber = panNumber;
+
+    const updated = await prisma.user.update({ where: { id }, data });
+
+    logAudit({
+      actorId: req.user.id, actorName: req.user.name, actorRole: req.user.role,
+      action: "EMPLOYEE_PROFILE_UPDATED", entity: "USER", entityId: id,
+      description: `Updated profile details for ${updated.name}`,
+      targetUserId: id, targetUserName: updated.name,
+      metadata: { fields: Object.keys(data) },
+    });
+
+    res.json({ msg: "Profile updated", user: updated });
+  } catch (err) {
+    console.error("updateEmployeeDetails:", err);
+    res.status(500).json({ msg: "Failed to update profile" });
+  }
+};

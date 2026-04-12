@@ -44,6 +44,8 @@ import QCEntry from "./pages/admin/QCEntry";
 import AllQCErrors from "./pages/admin/AllQCErrors";
 import MyErrors from "./pages/employee/MyErrors";
 import ManagementAudit from "./pages/admin/ManagementAudit";
+import EmployeeDirectory from "./pages/admin/EmployeeDirectory";
+import EmployeeProfileView from "./pages/admin/EmployeeProfileView";
 
 function App() {
   return (
@@ -373,6 +375,18 @@ function App() {
         <Route
           path="/admin/management-audit"
           element={<AdminRoute><ManagementAudit /></AdminRoute>}
+        />
+
+        {/* ===========================
+            EMPLOYEE DIRECTORY
+        =========================== */}
+        <Route
+          path="/admin/employees"
+          element={<ManagerRoute><EmployeeDirectory /></ManagerRoute>}
+        />
+        <Route
+          path="/admin/employees/:id"
+          element={<ManagerRoute><EmployeeProfileView /></ManagerRoute>}
         />
 
         {/* ===========================

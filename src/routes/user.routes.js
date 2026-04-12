@@ -8,6 +8,8 @@ import {
   updateWeeklyOff,
   updateUserRole,
   resetUserPassword,
+  getEmployeeFullProfile,
+  updateEmployeeDetails,
 } from "../controllers/user.controller.js";
 
 const router = express.Router();
@@ -15,8 +17,14 @@ const router = express.Router();
 // ADMIN + HR + MANAGER → list users (MANAGER sees own dept only)
 router.get("/",           auth, role(["ADMIN", "HR", "MANAGER"]), getUsers);
 
+// ADMIN + HR + MANAGER → single user full profile
+router.get("/:id/full-profile", auth, role(["ADMIN", "HR", "MANAGER"]), getEmployeeFullProfile);
+
 // ADMIN + HR + MANAGER → single user detail
 router.get("/:id",        auth, role(["ADMIN", "HR", "MANAGER"]), getUserDetail);
+
+// ADMIN + HR → update employee profile details
+router.patch("/:id/details", auth, role(["ADMIN", "HR"]), updateEmployeeDetails);
 
 // ADMIN → delete user
 router.delete("/:id",     auth, role(["ADMIN"]),       deleteUser);

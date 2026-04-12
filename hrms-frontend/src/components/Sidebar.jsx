@@ -54,9 +54,10 @@ const FULL_MENU = [
     section: "USER MANAGEMENT",
     roles: ["ADMIN"],
     items: [
-      { name: "Users", path: "/users", icon: <FaUsers /> },
-      { name: "Create User", path: "/admin/create-user", icon: <FaUserPlus /> },
-      { name: "Analysts", path: "/analysts", icon: <FaUserTie /> },
+      { name: "Users",                path: "/users",                    icon: <FaUsers />   },
+      { name: "Employee Directory",   path: "/admin/employees",          icon: <FaUsers />   },
+      { name: "Create User",          path: "/admin/create-user",        icon: <FaUserPlus /> },
+      { name: "Analysts",             path: "/analysts",                  icon: <FaUserTie /> },
       { name: "Terminated Employees", path: "/admin/terminated-analysts", icon: <FaUserSlash /> },
     ],
   },
@@ -65,8 +66,9 @@ const FULL_MENU = [
     section: "USER MANAGEMENT",
     roles: ["HR", "MANAGER"],
     items: [
-      { name: "Employees",   path: "/users",             icon: <FaUsers />   },
-      { name: "Create User", path: "/admin/create-user", icon: <FaUserPlus /> },
+      { name: "Employees",          path: "/users",              icon: <FaUsers />   },
+      { name: "Employee Directory", path: "/admin/employees",    icon: <FaUsers />   },
+      { name: "Create User",        path: "/admin/create-user",  icon: <FaUserPlus /> },
     ],
   },
   {
