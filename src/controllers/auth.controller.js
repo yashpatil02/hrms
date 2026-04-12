@@ -30,7 +30,15 @@ export const login = async (req, res) => {
     const { email, password } = req.body;
     if (!email || !password) return res.status(400).json({ msg: "Email and password required" });
 
-    const user = await prisma.user.findUnique({ where: { email: email.toLowerCase().trim() } });
+    const user = await prisma.user.findUnique({
+      where: { email: email.toLowerCase().trim() },
+      select: {
+        id: true, name: true, email: true, password: true,
+        role: true, department: true, weeklyOff: true,
+        weekoffBalance: true, phone: true, designation: true,
+        joinDate: true, avatar: true,
+      },
+    });
     if (!user) return res.status(401).json({ msg: "Invalid email or password" });
 
     const match = await bcrypt.compare(password, user.password);

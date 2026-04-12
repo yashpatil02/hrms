@@ -24,7 +24,7 @@ async function runCleanup() {
     /* ── Delete attendance audit logs older than 90 days ── */
     const auditCutoff = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
     const { count: auditDeleted } = await prisma.attendanceAudit.deleteMany({
-      where: { timestamp: { lt: auditCutoff } },
+      where: { createdAt: { lt: auditCutoff } },
     });
 
     if (notifDeleted + tokensDeleted + auditDeleted > 0) {
