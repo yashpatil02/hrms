@@ -301,13 +301,13 @@ export const getEmployeeFullProfile = async (req, res) => {
       prisma.employeeDocument.findMany({
         where: { employeeId: id },
         orderBy: { createdAt: "desc" },
-        select: { id:true, documentType:true, fileName:true, fileUrl:true, createdAt:true, uploadedBy: { select: { name:true } } },
+        select: { id:true, documentType:true, fileName:true, fileUrl:true, createdAt:true, admin: { select: { name:true } } },
       }),
       prisma.leave.findMany({
         where: { userId: id },
         orderBy: { createdAt: "desc" },
         take: 20,
-        select: { id:true, reason:true, fromDate:true, toDate:true, status:true, createdAt:true, rejectReason:true },
+        select: { id:true, reason:true, fromDate:true, toDate:true, status:true, createdAt:true, rejectReason:true  },
       }),
       prisma.attendance.findMany({
         where: { userId: id, date: { gte: threeMonthsAgo } },
