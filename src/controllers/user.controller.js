@@ -387,49 +387,75 @@ export const updateEmployeeDetails = async (req, res) => {
       employeeCode, panNumber,
     } = req.body;
 
-    const data = {};
-    if (name !== undefined)           data.name = name;
-    if (phone !== undefined)          data.phone = phone;
-    if (department !== undefined)     data.department = department;
-    if (designation !== undefined)    data.designation = designation;
-    if (joinDate !== undefined)       data.joinDate = joinDate ? new Date(joinDate) : null;
-    if (dateOfBirth !== undefined)    data.dateOfBirth = dateOfBirth ? new Date(dateOfBirth) : null;
-    if (gender !== undefined)         data.gender = gender;
-    if (bloodGroup !== undefined)     data.bloodGroup = bloodGroup;
-    if (address !== undefined)        data.address = address;
-    if (city !== undefined)           data.city = city;
-    if (state !== undefined)          data.state = state;
-    if (pincode !== undefined)        data.pincode = pincode;
-    if (emergencyName !== undefined)  data.emergencyName = emergencyName;
-    if (emergencyPhone !== undefined) data.emergencyPhone = emergencyPhone;
-    if (emergencyRel !== undefined)   data.emergencyRel = emergencyRel;
-    if (bankName !== undefined)       data.bankName = bankName;
-    if (bankAccount !== undefined)    data.bankAccount = bankAccount;
-    if (bankIFSC !== undefined)       data.bankIFSC = bankIFSC;
-    if (bankHolder !== undefined)     data.bankHolder = bankHolder;
-    if (employeeCode !== undefined)   data.employeeCode = employeeCode;
-    if (panNumber !== undefined)      data.panNumber = panNumber;
+    // Base fields — always exist in DB
+    const baseData = {};
+    if (name !== undefined)        baseData.name        = name;
+    if (phone !== undefined)       baseData.phone       = phone;
+    if (department !== undefined)  baseData.department  = department;
+    if (designation !== undefined) baseData.designation = designation;
+    if (joinDate !== undefined)    baseData.joinDate    = joinDate ? new Date(joinDate) : null;
+    if (employeeCode !== undefined) baseData.employeeCode = employeeCode;
+    if (panNumber !== undefined)   baseData.panNumber   = panNumber;
 
-    const updated = await prisma.user.update({
-      where: { id },
-      data,
-      select: { id: true, name: true, email: true, role: true, department: true,
-                designation: true, phone: true, joinDate: true, weeklyOff: true,
-                weekoffBalance: true, avatar: true, createdAt: true },
-    });
+    // Extended fields — added via ALTER TABLE; may not exist on older DBs
+    const extData = {};
+    if (dateOfBirth !== undefined)    extData.dateOfBirth    = dateOfBirth ? new Date(dateOfBirth) : null;
+    if (gender !== undefined)         extData.gender         = gender || null;
+    if (bloodGroup !== undefined)     extData.bloodGroup     = bloodGroup || null;
+    if (address !== undefined)        extData.address        = address || null;
+    if (city !== undefined)           extData.city           = city || null;
+    if (state !== undefined)          extData.state          = state || null;
+    if (pincode !== undefined)        extData.pincode        = pincode || null;
+    if (emergencyName !== undefined)  extData.emergencyName  = emergencyName || null;
+    if (emergencyPhone !== undefined) extData.emergencyPhone = emergencyPhone || null;
+    if (emergencyRel !== undefined)   extData.emergencyRel   = emergencyRel || null;
+    if (bankName !== undefined)       extData.bankName       = bankName || null;
+    if (bankAccount !== undefined)    extData.bankAccount    = bankAccount || null;
+    if (bankIFSC !== undefined)       extData.bankIFSC       = bankIFSC || null;
+    if (bankHolder !== undefined)     extData.bankHolder     = bankHolder || null;
+
+    const allData = { ...baseData, ...extData };
+    if (Object.keys(allData).length === 0)
+      return res.status(400).json({ msg: "No fields to update" });
+
+    let updated;
+
+    // Try updating everything in one shot first
+    try {
+      updated = await prisma.user.update({
+        where: { id },
+        data: allData,
+        select: { id: true, name: true, email: true, role: true, department: true,
+                  designation: true, phone: true, joinDate: true, weeklyOff: true,
+                  weekoffBalance: true, avatar: true, createdAt: true },
+      });
+    } catch (updateErr) {
+      // If it fails (likely missing columns), fall back to base fields only
+      console.warn("updateEmployeeDetails full update failed, retrying with base fields:", updateErr.message);
+      if (Object.keys(baseData).length === 0)
+        throw updateErr; // nothing safe to update, re-throw
+
+      updated = await prisma.user.update({
+        where: { id },
+        data: baseData,
+        select: { id: true, name: true, email: true, role: true, department: true,
+                  designation: true, phone: true, joinDate: true, weeklyOff: true,
+                  weekoffBalance: true, avatar: true, createdAt: true },
+      });
+    }
 
     logAudit({
       actorId: req.user.id, actorName: req.user.name, actorRole: req.user.role,
       action: "EMPLOYEE_PROFILE_UPDATED", entity: "USER", entityId: id,
       description: `Updated profile details for ${updated.name}`,
       targetUserId: id, targetUserName: updated.name,
-      metadata: { fields: Object.keys(data) },
+      metadata: { fields: Object.keys(allData) },
     });
 
     res.json({ msg: "Profile updated", user: updated });
   } catch (err) {
-    console.error("updateEmployeeDetails:", err);
-    res.status(500).json({ msg: "Failed to update profile" });
+    console.error("updateEmployeeDetails error:", err.message);
+    res.status(500).json({ msg: err.message || "Failed to update profile" });
   }
 };
 

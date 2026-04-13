@@ -89,7 +89,10 @@ function EditModal({ tab, user, onSave, onClose }) {
     setSaving(true);
     setError("");
     try {
-      await onSave(form);
+      // Only send the keys shown in this tab — not the entire user object
+      const payload = {};
+      activeFields.forEach(({ key }) => { payload[key] = form[key] ?? null; });
+      await onSave(payload);
       onClose();
     } catch (e) {
       setError(e?.response?.data?.msg || "Failed to save");
