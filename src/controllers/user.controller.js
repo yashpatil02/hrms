@@ -272,25 +272,39 @@ export const getEmployeeFullProfile = async (req, res) => {
     // Get 3 months of attendance
     const threeMonthsAgo = new Date(now.getFullYear(), now.getMonth()-2, 1);
 
-    const [user, salaryStructure, payrolls, documents, leaves, attendance, qcErrors] = await Promise.all([
-      prisma.user.findUnique({
+    // Fetch user with basic fields first — always safe
+    const user = await prisma.user.findUnique({
+      where: { id },
+      select: {
+        id: true, name: true, email: true, role: true,
+        department: true, designation: true, phone: true,
+        joinDate: true, weeklyOff: true, weekoffBalance: true,
+        avatar: true, createdAt: true,
+      },
+    });
+
+    if (!user) return res.status(404).json({ msg: "Employee not found" });
+
+    // Fetch extended fields separately — added via ALTER TABLE, may not exist in older DBs
+    let extendedFields = {};
+    try {
+      const ext = await prisma.user.findUnique({
         where: { id },
         select: {
-          id: true, name: true, email: true, role: true,
-          department: true, designation: true, phone: true,
-          joinDate: true, weeklyOff: true, weekoffBalance: true,
-          avatar: true, overtimeRatePerHour: true, createdAt: true,
-          // personal
+          overtimeRatePerHour: true,
           dateOfBirth: true, gender: true, bloodGroup: true,
           address: true, city: true, state: true, pincode: true,
-          // emergency
           emergencyName: true, emergencyPhone: true, emergencyRel: true,
-          // bank
           bankName: true, bankAccount: true, bankIFSC: true, bankHolder: true,
-          // employment
           employeeCode: true, panNumber: true,
         },
-      }),
+      });
+      if (ext) extendedFields = ext;
+    } catch (e) {
+      console.warn("getEmployeeFullProfile: extended fields not available yet:", e.message);
+    }
+
+    const [salaryStructure, payrolls, documents, leaves, attendance] = await Promise.all([
       prisma.salaryStructure.findUnique({ where: { userId: id } }),
       prisma.payroll.findMany({
         where: { userId: id },
@@ -307,17 +321,22 @@ export const getEmployeeFullProfile = async (req, res) => {
         where: { userId: id },
         orderBy: { createdAt: "desc" },
         take: 20,
-        select: { id:true, reason:true, fromDate:true, toDate:true, status:true, createdAt:true, rejectReason:true  },
+        select: { id:true, reason:true, fromDate:true, toDate:true, status:true, createdAt:true, rejectReason:true },
       }),
       prisma.attendance.findMany({
         where: { userId: id, date: { gte: threeMonthsAgo } },
         select: { date:true, dayType:true },
         orderBy: { date: "desc" },
       }),
-      prisma.qCError.count({ where: { employeeId: id } }),
     ]);
 
-    if (!user) return res.status(404).json({ msg: "Employee not found" });
+    // qcErrors — may fail if QCError table not yet created
+    let qcErrors = 0;
+    try {
+      qcErrors = await prisma.qCError.count({ where: { employeeId: id } });
+    } catch (e) {
+      console.warn("getEmployeeFullProfile: qcErrors count failed:", e.message);
+    }
 
     // Monthly attendance breakdown for last 3 months
     const monthlyStats = {};
@@ -346,7 +365,7 @@ export const getEmployeeFullProfile = async (req, res) => {
       balance: user.weekoffBalance || 0,
     };
 
-    res.json({ user, salaryStructure, payrolls, documents, leaves, monthlyStats, leaveStats, qcErrors });
+    res.json({ user: { ...user, ...extendedFields }, salaryStructure, payrolls, documents, leaves, monthlyStats, leaveStats, qcErrors });
   } catch (err) {
     console.error("getEmployeeFullProfile:", err);
     res.status(500).json({ msg: "Failed to fetch profile" });
