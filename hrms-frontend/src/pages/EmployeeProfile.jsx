@@ -6,19 +6,21 @@ import {
   FaUser, FaEnvelope, FaPhone, FaBriefcase, FaBuilding,
   FaCalendarAlt, FaEdit, FaSave, FaTimes, FaLock,
   FaCheckCircle, FaExclamationTriangle, FaCamera, FaIdBadge,
-  FaShieldAlt,
+  FaShieldAlt, FaMapMarkerAlt, FaHeartbeat, FaUniversity,
+  FaUserFriends,
 } from "react-icons/fa";
 
 const ROLE_COLOR = {
   ADMIN:    "bg-purple-100 text-purple-700",
   HR:       "bg-blue-100 text-blue-700",
+  MANAGER:  "bg-orange-100 text-orange-700",
   EMPLOYEE: "bg-green-100 text-green-700",
 };
 
 const Avatar = ({ name, avatar, size = "lg" }) => {
   const sz = size === "lg" ? "w-24 h-24 text-3xl" : "w-10 h-10 text-base";
   if (avatar) return <img src={avatar} alt={name} className={`${sz} rounded-2xl object-cover`} />;
-  const colors = ["from-blue-500 to-indigo-600", "from-teal-500 to-green-600", "from-purple-500 to-pink-600", "from-amber-500 to-orange-600"];
+  const colors = ["from-blue-500 to-indigo-600","from-teal-500 to-green-600","from-purple-500 to-pink-600","from-amber-500 to-orange-600"];
   const idx = (name?.charCodeAt(0) || 0) % colors.length;
   return (
     <div className={`${sz} rounded-2xl bg-gradient-to-br ${colors[idx]} flex items-center justify-center text-white font-bold flex-shrink-0`}>
@@ -39,27 +41,60 @@ const InfoRow = ({ icon, label, value }) => (
   </div>
 );
 
+const FieldInput = ({ label, value, onChange, type = "text", placeholder = "" }) => (
+  <div>
+    <label className="text-xs font-semibold text-gray-500 mb-1 block">{label}</label>
+    <input
+      type={type}
+      value={value || ""}
+      onChange={e => onChange(e.target.value)}
+      placeholder={placeholder}
+      className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400"
+    />
+  </div>
+);
+
+const FieldSelect = ({ label, value, onChange, options }) => (
+  <div>
+    <label className="text-xs font-semibold text-gray-500 mb-1 block">{label}</label>
+    <select
+      value={value || ""}
+      onChange={e => onChange(e.target.value)}
+      className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400 bg-white"
+    >
+      <option value="">— Select —</option>
+      {options.map(o => <option key={o} value={o}>{o}</option>)}
+    </select>
+  </div>
+);
+
+const SectionCard = ({ title, icon, children }) => (
+  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+    <h2 className="font-bold text-gray-900 flex items-center gap-2 mb-4">
+      {icon} {title}
+    </h2>
+    {children}
+  </div>
+);
+
 export default function EmployeeProfile() {
   const { updateUser } = useUser();
-  const [profile, setProfile] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [profile, setProfile]   = useState(null);
+  const [loading, setLoading]   = useState(true);
   const [editMode, setEditMode] = useState(false);
-  const [form, setForm] = useState({});
-  const [saving, setSaving] = useState(false);
-  const [toast, setToast] = useState(null); // { msg, type }
+  const [form, setForm]         = useState({});
+  const [saving, setSaving]     = useState(false);
+  const [toast, setToast]       = useState(null);
 
-  // Password change
-  const [pwMode, setPwMode] = useState(false);
-  const [pw, setPw] = useState({ current: "", newPw: "", confirm: "" });
-  const [pwErr, setPwErr] = useState("");
+  const [pwMode, setPwMode]   = useState(false);
+  const [pw, setPw]           = useState({ current: "", newPw: "", confirm: "" });
+  const [pwErr, setPwErr]     = useState("");
   const [pwSaving, setPwSaving] = useState(false);
 
-  // Avatar input
   const avatarRef = useRef();
 
   useEffect(() => { loadProfile(); }, []);
 
-  // ✅ Warn before leaving page with unsaved changes
   useEffect(() => {
     const handleBeforeUnload = (e) => {
       if (editMode) { e.preventDefault(); e.returnValue = ""; }
@@ -73,12 +108,32 @@ export default function EmployeeProfile() {
     try {
       const { data } = await api.get("/profile/me");
       setProfile(data);
-      setForm({ name: data.name, phone: data.phone || "", designation: data.designation || "", avatar: data.avatar || "" });
-      // ✅ Sync latest avatar from DB into context so Navbar reflects it immediately
+      setForm({
+        name:           data.name        || "",
+        phone:          data.phone       || "",
+        designation:    data.designation || "",
+        avatar:         data.avatar      || "",
+        dateOfBirth:    data.dateOfBirth ? data.dateOfBirth.slice(0, 10) : "",
+        gender:         data.gender      || "",
+        bloodGroup:     data.bloodGroup  || "",
+        address:        data.address     || "",
+        city:           data.city        || "",
+        state:          data.state       || "",
+        pincode:        data.pincode     || "",
+        emergencyName:  data.emergencyName  || "",
+        emergencyPhone: data.emergencyPhone || "",
+        emergencyRel:   data.emergencyRel   || "",
+        bankName:       data.bankName    || "",
+        bankAccount:    data.bankAccount || "",
+        bankIFSC:       data.bankIFSC    || "",
+        bankHolder:     data.bankHolder  || "",
+      });
       updateUser({ name: data.name, avatar: data.avatar || "" });
     } catch {}
     setLoading(false);
   };
+
+  const f = (key) => (val) => setForm(p => ({ ...p, [key]: val }));
 
   const showToast = (msg, type = "success") => {
     setToast({ msg, type });
@@ -90,8 +145,7 @@ export default function EmployeeProfile() {
     setSaving(true);
     try {
       const { data } = await api.put("/profile/me", form);
-      setProfile((p) => ({ ...p, ...data.user }));
-      // ✅ Sync name + avatar to UserContext (updates Navbar + localStorage)
+      setProfile(p => ({ ...p, ...data.user }));
       updateUser({ name: data.user.name, avatar: data.user.avatar || "" });
       setEditMode(false);
       showToast("Profile updated successfully!");
@@ -104,17 +158,10 @@ export default function EmployeeProfile() {
   const handleAvatarChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
-
-    // ✅ Accept up to 5MB, then auto-compress via canvas
-    if (file.size > 5 * 1024 * 1024) {
-      showToast("Image must be under 5MB", "error");
-      return;
-    }
-
+    if (file.size > 5 * 1024 * 1024) { showToast("Image must be under 5MB", "error"); return; }
     const img = new Image();
     const url = URL.createObjectURL(file);
     img.onload = () => {
-      // Resize to max 400×400 keeping aspect ratio
       const MAX = 400;
       let { width, height } = img;
       if (width > MAX || height > MAX) {
@@ -122,18 +169,13 @@ export default function EmployeeProfile() {
         else                { width  = Math.round((width  * MAX) / height); height = MAX; }
       }
       const canvas = document.createElement("canvas");
-      canvas.width  = width;
-      canvas.height = height;
+      canvas.width = width; canvas.height = height;
       canvas.getContext("2d").drawImage(img, 0, 0, width, height);
-      // Compress to JPEG quality 0.82 — keeps good quality, small size
       const compressed = canvas.toDataURL("image/jpeg", 0.82);
       URL.revokeObjectURL(url);
-      setForm((p) => ({ ...p, avatar: compressed }));
+      setForm(p => ({ ...p, avatar: compressed }));
     };
-    img.onerror = () => {
-      URL.revokeObjectURL(url);
-      showToast("Invalid image file", "error");
-    };
+    img.onerror = () => { URL.revokeObjectURL(url); showToast("Invalid image file", "error"); };
     img.src = url;
   };
 
@@ -156,26 +198,34 @@ export default function EmployeeProfile() {
 
   if (loading) return <Layout><div className="flex items-center justify-center h-64 text-gray-400 text-sm">Loading profile…</div></Layout>;
 
-  const joinDate = profile?.joinDate ? new Date(profile.joinDate).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" }) : null;
+  const joinDate    = profile?.joinDate   ? new Date(profile.joinDate).toLocaleDateString("en-IN",   { day: "numeric", month: "long", year: "numeric" }) : null;
+  const dob         = profile?.dateOfBirth ? new Date(profile.dateOfBirth).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" }) : null;
   const memberSince = new Date(profile?.createdAt).toLocaleDateString("en-IN", { month: "long", year: "numeric" });
+
+  const EditActions = () => (
+    <div className="flex gap-2">
+      <button onClick={() => setEditMode(false)} className="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100"><FaTimes size={13} /></button>
+      <button onClick={handleSave} disabled={saving}
+        className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold disabled:opacity-60 transition">
+        <FaSave size={11} /> {saving ? "Saving…" : "Save"}
+      </button>
+    </div>
+  );
 
   return (
     <Layout>
-      <div className="p-4 md:p-6 max-w-4xl mx-auto space-y-5">
+      <div className="p-4 md:p-6 max-w-5xl mx-auto space-y-5">
 
         {/* Header Card */}
         <div className="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-2xl p-6 text-white relative overflow-hidden">
           <div className="absolute top-0 right-0 w-48 h-48 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2" />
           <div className="flex items-center gap-5 relative z-10">
             <div className="relative flex-shrink-0">
-              {/* Show preview of new image while in edit mode */}
               <Avatar name={profile?.name} avatar={editMode && form.avatar ? form.avatar : profile?.avatar} size="lg" />
               {editMode && (
                 <>
-                  <button
-                    onClick={() => avatarRef.current?.click()}
-                    className="absolute -bottom-1 -right-1 w-7 h-7 bg-white rounded-lg shadow flex items-center justify-center text-blue-600 hover:text-blue-800"
-                  >
+                  <button onClick={() => avatarRef.current?.click()}
+                    className="absolute -bottom-1 -right-1 w-7 h-7 bg-white rounded-lg shadow flex items-center justify-center text-blue-600 hover:text-blue-800">
                     <FaCamera size={12} />
                   </button>
                   <input ref={avatarRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
@@ -186,97 +236,142 @@ export default function EmployeeProfile() {
               <h1 className="text-2xl font-black truncate">{profile?.name}</h1>
               <p className="text-blue-200 text-sm mt-0.5">{profile?.designation || "—"} · {profile?.department || "—"}</p>
               <div className="flex items-center gap-2 mt-2 flex-wrap">
-                <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-white/20 text-white`}>
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-white/20 text-white">
                   <FaShieldAlt size={9} /> {profile?.role}
                 </span>
                 <span className="text-blue-200 text-xs">Member since {memberSince}</span>
               </div>
             </div>
             {!editMode && (
-              <button
-                onClick={() => setEditMode(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-white/20 hover:bg-white/30 rounded-xl text-sm font-semibold transition flex-shrink-0"
-              >
-                <FaEdit size={12} /> Edit
+              <button onClick={() => setEditMode(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-white/20 hover:bg-white/30 rounded-xl text-sm font-semibold transition flex-shrink-0">
+                <FaEdit size={12} /> Edit Profile
               </button>
             )}
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
 
-          {/* Profile Info / Edit */}
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="font-bold text-gray-900">Personal Info</h2>
-              {editMode && (
-                <div className="flex gap-2">
-                  <button onClick={() => setEditMode(false)} className="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100"><FaTimes size={13} /></button>
-                  <button onClick={handleSave} disabled={saving} className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold disabled:opacity-60 transition">
-                    <FaSave size={11} /> {saving ? "Saving…" : "Save"}
-                  </button>
-                </div>
-              )}
-            </div>
+          {/* LEFT — main info (2 cols wide) */}
+          <div className="lg:col-span-2 space-y-5">
 
-            {editMode ? (
-              <div className="space-y-3">
-                {[
-                  { label: "Full Name *", key: "name", type: "text" },
-                  { label: "Phone", key: "phone", type: "tel" },
-                  { label: "Designation", key: "designation", type: "text" },
-                ].map(({ label, key, type }) => (
-                  <div key={key}>
-                    <label className="text-xs font-semibold text-gray-500 mb-1 block">{label}</label>
-                    <input
-                      type={type}
-                      value={form[key] || ""}
-                      onChange={(e) => setForm((p) => ({ ...p, [key]: e.target.value }))}
-                      className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400"
-                    />
+            {/* Basic Info */}
+            <SectionCard title="Basic Information" icon={<FaUser className="text-blue-500" size={14} />}>
+              <div className="flex items-center justify-between -mt-1 mb-3">
+                <span />
+                {editMode && <EditActions />}
+              </div>
+              {editMode ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <FieldInput label="Full Name *" value={form.name}        onChange={f("name")} />
+                  <FieldInput label="Phone"       value={form.phone}       onChange={f("phone")} type="tel" />
+                  <FieldInput label="Designation" value={form.designation} onChange={f("designation")} />
+                  <div>
+                    <label className="text-xs font-semibold text-gray-500 mb-1 block">Avatar URL (or upload above)</label>
+                    <input type="url" value={form.avatar || ""} onChange={e => setForm(p => ({ ...p, avatar: e.target.value }))}
+                      placeholder="https://…"
+                      className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400" />
                   </div>
-                ))}
-                <div>
-                  <label className="text-xs font-semibold text-gray-500 mb-1 block">Avatar URL (or upload above)</label>
-                  <input
-                    type="url"
-                    value={form.avatar || ""}
-                    onChange={(e) => setForm((p) => ({ ...p, avatar: e.target.value }))}
-                    placeholder="https://..."
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400"
-                  />
                 </div>
-              </div>
-            ) : (
-              <div>
-                <InfoRow icon={<FaUser size={12} />}     label="Full Name"    value={profile?.name} />
-                <InfoRow icon={<FaEnvelope size={12} />} label="Email"        value={profile?.email} />
-                <InfoRow icon={<FaPhone size={12} />}    label="Phone"        value={profile?.phone} />
-                <InfoRow icon={<FaIdBadge size={12} />}  label="Designation"  value={profile?.designation} />
-                <InfoRow icon={<FaBuilding size={12} />} label="Department"   value={profile?.department} />
-                {joinDate && <InfoRow icon={<FaCalendarAlt size={12} />} label="Join Date" value={joinDate} />}
-              </div>
-            )}
+              ) : (
+                <>
+                  <InfoRow icon={<FaUser size={12} />}       label="Full Name"   value={profile?.name} />
+                  <InfoRow icon={<FaEnvelope size={12} />}   label="Email"       value={profile?.email} />
+                  <InfoRow icon={<FaPhone size={12} />}      label="Phone"       value={profile?.phone} />
+                  <InfoRow icon={<FaIdBadge size={12} />}    label="Designation" value={profile?.designation} />
+                  <InfoRow icon={<FaBuilding size={12} />}   label="Department"  value={profile?.department} />
+                  {joinDate && <InfoRow icon={<FaCalendarAlt size={12} />} label="Join Date" value={joinDate} />}
+                </>
+              )}
+            </SectionCard>
+
+            {/* Personal Details */}
+            <SectionCard title="Personal Details" icon={<FaHeartbeat className="text-rose-500" size={14} />}>
+              {editMode ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <FieldInput label="Date of Birth" value={form.dateOfBirth} onChange={f("dateOfBirth")} type="date" />
+                  <FieldSelect label="Gender" value={form.gender} onChange={f("gender")} options={["MALE","FEMALE","OTHER"]} />
+                  <FieldSelect label="Blood Group" value={form.bloodGroup} onChange={f("bloodGroup")} options={["A+","A-","B+","B-","O+","O-","AB+","AB-"]} />
+                  <div className="sm:col-span-2">
+                    <FieldInput label="Address" value={form.address} onChange={f("address")} />
+                  </div>
+                  <FieldInput label="City"    value={form.city}    onChange={f("city")} />
+                  <FieldInput label="State"   value={form.state}   onChange={f("state")} />
+                  <FieldInput label="Pincode" value={form.pincode} onChange={f("pincode")} />
+                </div>
+              ) : (
+                <>
+                  {dob    && <InfoRow icon={<FaCalendarAlt size={12} />} label="Date of Birth" value={dob} />}
+                  <InfoRow icon={<FaUser size={12} />}         label="Gender"     value={profile?.gender} />
+                  <InfoRow icon={<FaHeartbeat size={12} />}   label="Blood Group" value={profile?.bloodGroup} />
+                  <InfoRow icon={<FaMapMarkerAlt size={12} />} label="Address"    value={[profile?.address, profile?.city, profile?.state, profile?.pincode].filter(Boolean).join(", ")} />
+                </>
+              )}
+            </SectionCard>
+
+            {/* Emergency Contact */}
+            <SectionCard title="Emergency Contact" icon={<FaUserFriends className="text-amber-500" size={14} />}>
+              {editMode ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <FieldInput label="Contact Name"     value={form.emergencyName}  onChange={f("emergencyName")} />
+                  <FieldInput label="Contact Phone"    value={form.emergencyPhone} onChange={f("emergencyPhone")} type="tel" />
+                  <FieldInput label="Relation (e.g. Father, Spouse)" value={form.emergencyRel} onChange={f("emergencyRel")} />
+                </div>
+              ) : (
+                <>
+                  <InfoRow icon={<FaUser size={12} />}         label="Name"     value={profile?.emergencyName} />
+                  <InfoRow icon={<FaPhone size={12} />}        label="Phone"    value={profile?.emergencyPhone} />
+                  <InfoRow icon={<FaUserFriends size={12} />}  label="Relation" value={profile?.emergencyRel} />
+                </>
+              )}
+            </SectionCard>
+
+            {/* Bank Details */}
+            <SectionCard title="Bank Details" icon={<FaUniversity className="text-indigo-500" size={14} />}>
+              {editMode ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <FieldInput label="Bank Name"        value={form.bankName}    onChange={f("bankName")} />
+                  <FieldInput label="Account Number"   value={form.bankAccount} onChange={f("bankAccount")} />
+                  <FieldInput label="IFSC Code"        value={form.bankIFSC}    onChange={f("bankIFSC")} />
+                  <FieldInput label="Account Holder"   value={form.bankHolder}  onChange={f("bankHolder")} />
+                </div>
+              ) : (
+                <>
+                  <InfoRow icon={<FaUniversity size={12} />} label="Bank Name"      value={profile?.bankName} />
+                  <InfoRow icon={<FaIdBadge size={12} />}    label="Account Number"
+                    value={profile?.bankAccount ? `****${profile.bankAccount.slice(-4)}` : null} />
+                  <InfoRow icon={<FaBriefcase size={12} />}  label="IFSC Code"      value={profile?.bankIFSC} />
+                  <InfoRow icon={<FaUser size={12} />}       label="Account Holder" value={profile?.bankHolder} />
+                </>
+              )}
+            </SectionCard>
+
           </div>
 
-          {/* Right column */}
-          <div className="space-y-4">
+          {/* RIGHT — stats + security */}
+          <div className="space-y-5">
+
             {/* Stats */}
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-              <h2 className="font-bold text-gray-900 mb-4">My Stats</h2>
-              <div className="grid grid-cols-3 gap-3">
+            <SectionCard title="My Stats" icon={<FaBriefcase className="text-gray-400" size={13} />}>
+              <div className="grid grid-cols-3 gap-2">
                 {[
                   { label: "Attendance", val: profile?._count?.attendances || 0, color: "bg-blue-50 text-blue-700" },
-                  { label: "Leaves",     val: profile?._count?.leaves     || 0, color: "bg-amber-50 text-amber-700" },
-                  { label: "Documents",  val: profile?._count?.documents  || 0, color: "bg-green-50 text-green-700" },
-                ].map((s) => (
+                  { label: "Leaves",     val: profile?._count?.leaves      || 0, color: "bg-amber-50 text-amber-700" },
+                  { label: "Documents",  val: profile?._count?.documents   || 0, color: "bg-green-50 text-green-700" },
+                ].map(s => (
                   <div key={s.label} className={`${s.color} rounded-xl p-3 text-center`}>
                     <p className="text-2xl font-black">{s.val}</p>
-                    <p className="text-xs opacity-70 mt-0.5">{s.label}</p>
+                    <p className="text-[10px] opacity-70 mt-0.5">{s.label}</p>
                   </div>
                 ))}
               </div>
-            </div>
+              <div className="mt-4 space-y-0">
+                {profile?.weekoffBalance !== undefined && (
+                  <InfoRow icon={<FaCalendarAlt size={12} />} label="Week-off Balance" value={`${profile.weekoffBalance} day(s)`} />
+                )}
+              </div>
+            </SectionCard>
 
             {/* Change Password */}
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
@@ -286,9 +381,8 @@ export default function EmployeeProfile() {
                   <button onClick={() => setPwMode(true)} className="text-xs text-blue-600 hover:text-blue-800 font-semibold">Change Password</button>
                 )}
               </div>
-
               {!pwMode ? (
-                <p className="text-sm text-gray-400">Password is set. Click "Change Password" to update it.</p>
+                <p className="text-sm text-gray-400">Password is set. Click "Change Password" to update.</p>
               ) : (
                 <div className="space-y-3">
                   {[
@@ -298,26 +392,24 @@ export default function EmployeeProfile() {
                   ].map(({ label, key }) => (
                     <div key={key}>
                       <label className="text-xs font-semibold text-gray-500 mb-1 block">{label}</label>
-                      <input
-                        type="password"
-                        value={pw[key]}
-                        onChange={(e) => setPw((p) => ({ ...p, [key]: e.target.value }))}
-                        className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400"
-                      />
+                      <input type="password" value={pw[key]}
+                        onChange={e => setPw(p => ({ ...p, [key]: e.target.value }))}
+                        className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400" />
                     </div>
                   ))}
-                  {pwErr && (
-                    <p className="text-xs text-red-600 flex items-center gap-1"><FaExclamationTriangle size={10} /> {pwErr}</p>
-                  )}
+                  {pwErr && <p className="text-xs text-red-600 flex items-center gap-1"><FaExclamationTriangle size={10} /> {pwErr}</p>}
                   <div className="flex gap-2 pt-1">
-                    <button onClick={() => { setPwMode(false); setPwErr(""); }} className="flex-1 py-2 text-xs font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition">Cancel</button>
-                    <button onClick={handlePasswordChange} disabled={pwSaving} className="flex-1 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition disabled:opacity-60">
+                    <button onClick={() => { setPwMode(false); setPwErr(""); }}
+                      className="flex-1 py-2 text-xs font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition">Cancel</button>
+                    <button onClick={handlePasswordChange} disabled={pwSaving}
+                      className="flex-1 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition disabled:opacity-60">
                       {pwSaving ? "Saving…" : "Update"}
                     </button>
                   </div>
                 </div>
               )}
             </div>
+
           </div>
         </div>
       </div>

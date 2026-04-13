@@ -410,7 +410,13 @@ export const updateEmployeeDetails = async (req, res) => {
     if (employeeCode !== undefined)   data.employeeCode = employeeCode;
     if (panNumber !== undefined)      data.panNumber = panNumber;
 
-    const updated = await prisma.user.update({ where: { id }, data });
+    const updated = await prisma.user.update({
+      where: { id },
+      data,
+      select: { id: true, name: true, email: true, role: true, department: true,
+                designation: true, phone: true, joinDate: true, weeklyOff: true,
+                weekoffBalance: true, avatar: true, createdAt: true },
+    });
 
     logAudit({
       actorId: req.user.id, actorName: req.user.name, actorRole: req.user.role,
@@ -426,3 +432,4 @@ export const updateEmployeeDetails = async (req, res) => {
     res.status(500).json({ msg: "Failed to update profile" });
   }
 };
+
