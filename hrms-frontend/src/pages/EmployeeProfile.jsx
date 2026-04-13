@@ -144,9 +144,8 @@ export default function EmployeeProfile() {
     if (!form.name?.trim()) return;
     setSaving(true);
     try {
-      const { data } = await api.put("/profile/me", form);
-      setProfile(p => ({ ...p, ...data.user }));
-      updateUser({ name: data.user.name, avatar: data.user.avatar || "" });
+      await api.put("/profile/me", form);
+      await loadProfile(); // reload full profile so extended fields (DOB, bank etc.) refresh
       setEditMode(false);
       showToast("Profile updated successfully!");
     } catch (err) {
