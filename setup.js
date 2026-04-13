@@ -6,7 +6,14 @@
  */
 import { PrismaClient } from "@prisma/client";
 
-const prisma = new PrismaClient();
+// Use DIRECT_URL (non-pooled) for DDL statements so ALTER TABLE / CREATE TABLE
+// execute reliably. PgBouncer's pooled connection (DATABASE_URL) can silently
+// drop session-level DDL in transaction mode.
+const prisma = new PrismaClient({
+  datasources: {
+    db: { url: process.env.DIRECT_URL || process.env.DATABASE_URL },
+  },
+});
 
 async function runSetup() {
   try {

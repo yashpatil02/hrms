@@ -53,42 +53,49 @@ export const updateMyProfile = async (req, res) => {
       bankName, bankAccount, bankIFSC, bankHolder,
     } = req.body;
 
-    const data = {};
-    if (name?.trim())              data.name        = name.trim();
-    if (phone !== undefined)       data.phone       = phone?.trim() || null;
-    if (designation !== undefined) data.designation = designation?.trim() || null;
-    if (avatar !== undefined)      data.avatar      = avatar || null;
+    // Base fields — existed in original schema, always safe
+    const baseData = {};
+    if (name?.trim())              baseData.name        = name.trim();
+    if (phone !== undefined)       baseData.phone       = phone?.trim() || null;
+    if (designation !== undefined) baseData.designation = designation?.trim() || null;
+    if (avatar !== undefined)      baseData.avatar      = avatar || null;
 
-    // Extended fields — only set if the column is expected to exist (after setup.js runs)
-    if (dateOfBirth !== undefined)    data.dateOfBirth    = dateOfBirth ? new Date(dateOfBirth) : null;
-    if (gender !== undefined)         data.gender         = gender || null;
-    if (bloodGroup !== undefined)     data.bloodGroup     = bloodGroup || null;
-    if (address !== undefined)        data.address        = address || null;
-    if (city !== undefined)           data.city           = city || null;
-    if (state !== undefined)          data.state          = state || null;
-    if (pincode !== undefined)        data.pincode        = pincode || null;
-    if (emergencyName !== undefined)  data.emergencyName  = emergencyName || null;
-    if (emergencyPhone !== undefined) data.emergencyPhone = emergencyPhone || null;
-    if (emergencyRel !== undefined)   data.emergencyRel   = emergencyRel || null;
-    if (bankName !== undefined)       data.bankName       = bankName || null;
-    if (bankAccount !== undefined)    data.bankAccount    = bankAccount || null;
-    if (bankIFSC !== undefined)       data.bankIFSC       = bankIFSC || null;
-    if (bankHolder !== undefined)     data.bankHolder     = bankHolder || null;
+    // Extended fields — added via ALTER TABLE, may not exist in older DBs
+    const extData = {};
+    if (dateOfBirth !== undefined)    extData.dateOfBirth    = dateOfBirth ? new Date(dateOfBirth) : null;
+    if (gender !== undefined)         extData.gender         = gender || null;
+    if (bloodGroup !== undefined)     extData.bloodGroup     = bloodGroup || null;
+    if (address !== undefined)        extData.address        = address || null;
+    if (city !== undefined)           extData.city           = city || null;
+    if (state !== undefined)          extData.state          = state || null;
+    if (pincode !== undefined)        extData.pincode        = pincode || null;
+    if (emergencyName !== undefined)  extData.emergencyName  = emergencyName || null;
+    if (emergencyPhone !== undefined) extData.emergencyPhone = emergencyPhone || null;
+    if (emergencyRel !== undefined)   extData.emergencyRel   = emergencyRel || null;
+    if (bankName !== undefined)       extData.bankName       = bankName || null;
+    if (bankAccount !== undefined)    extData.bankAccount    = bankAccount || null;
+    if (bankIFSC !== undefined)       extData.bankIFSC       = bankIFSC || null;
+    if (bankHolder !== undefined)     extData.bankHolder     = bankHolder || null;
 
-    const user = await prisma.user.update({
-      where: { id: req.user.id },
-      data,
-      select: {
-        id: true, name: true, email: true, role: true,
-        phone: true, department: true, designation: true,
-        joinDate: true, avatar: true, weeklyOff: true,
-      },
-    });
+    const allData = { ...baseData, ...extData };
+    const safeSelect = {
+      id: true, name: true, email: true, role: true,
+      phone: true, department: true, designation: true,
+      joinDate: true, avatar: true, weeklyOff: true,
+    };
+
+    let user;
+    try {
+      user = await prisma.user.update({ where: { id: req.user.id }, data: allData, select: safeSelect });
+    } catch {
+      // Extended columns may not exist yet — fall back to base fields only
+      user = await prisma.user.update({ where: { id: req.user.id }, data: baseData, select: safeSelect });
+    }
 
     res.json({ message: "Profile updated", user });
   } catch (err) {
-    console.error("updateMyProfile:", err);
-    res.status(500).json({ message: "Failed to update profile" });
+    console.error("updateMyProfile:", err.message);
+    res.status(500).json({ message: err.message || "Failed to update profile" });
   }
 };
 

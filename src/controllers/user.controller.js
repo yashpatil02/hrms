@@ -387,18 +387,18 @@ export const updateEmployeeDetails = async (req, res) => {
       employeeCode, panNumber,
     } = req.body;
 
-    // Base fields — always exist in DB
+    // Base fields — existed in original schema, always safe
     const baseData = {};
     if (name !== undefined)        baseData.name        = name;
     if (phone !== undefined)       baseData.phone       = phone;
     if (department !== undefined)  baseData.department  = department;
     if (designation !== undefined) baseData.designation = designation;
     if (joinDate !== undefined)    baseData.joinDate    = joinDate ? new Date(joinDate) : null;
-    if (employeeCode !== undefined) baseData.employeeCode = employeeCode;
-    if (panNumber !== undefined)   baseData.panNumber   = panNumber;
 
-    // Extended fields — added via ALTER TABLE; may not exist on older DBs
+    // Extended fields — ALL added via ALTER TABLE, may not exist in older DBs
     const extData = {};
+    if (employeeCode !== undefined) extData.employeeCode = employeeCode || null;
+    if (panNumber !== undefined)    extData.panNumber    = panNumber || null;
     if (dateOfBirth !== undefined)    extData.dateOfBirth    = dateOfBirth ? new Date(dateOfBirth) : null;
     if (gender !== undefined)         extData.gender         = gender || null;
     if (bloodGroup !== undefined)     extData.bloodGroup     = bloodGroup || null;
