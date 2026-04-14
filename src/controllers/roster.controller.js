@@ -3,6 +3,81 @@ import prisma from "../../prisma/client.js";
 const VALID_SHIFTS = ["MORNING", "AFTERNOON", "GENERAL", "EVENING", "NIGHT"];
 
 /* ─────────────────────────────────────────
+   POST /api/roster/bulk
+   Manager bulk-assigns shifts for a month
+   Body: {
+     userIds: [1,2,3],
+     shift: "MORNING",
+     month: "2026-04",
+     applyTo: "all" | "weekdays" | "range",
+     startDate?: "2026-04-01",  // only for "range"
+     endDate?:   "2026-04-30",  // only for "range"
+     overwrite: true | false,   // overwrite existing?
+   }
+───────────────────────────────────────── */
+export const bulkAssignShift = async (req, res) => {
+  try {
+    const { userIds, shift, month, applyTo, startDate, endDate, overwrite } = req.body;
+
+    if (!userIds?.length) return res.status(400).json({ msg: "userIds required" });
+    if (!shift || !VALID_SHIFTS.includes(shift)) return res.status(400).json({ msg: "Valid shift required" });
+    if (!month || !/^\d{4}-\d{2}$/.test(month)) return res.status(400).json({ msg: "month required (YYYY-MM)" });
+
+    // Build list of dates to assign
+    const [y, m] = month.split("-").map(Number);
+    const dates = [];
+
+    if (applyTo === "range" && startDate && endDate) {
+      const s = new Date(startDate);
+      const e = new Date(endDate);
+      s.setHours(0, 0, 0, 0);
+      e.setHours(0, 0, 0, 0);
+      for (let d = new Date(s); d <= e; d.setDate(d.getDate() + 1)) {
+        dates.push(new Date(d));
+      }
+    } else {
+      const daysInMonth = new Date(y, m, 0).getDate();
+      for (let day = 1; day <= daysInMonth; day++) {
+        const d = new Date(y, m - 1, day);
+        if (applyTo === "weekdays" && (d.getDay() === 0 || d.getDay() === 6)) continue;
+        dates.push(d);
+      }
+    }
+
+    // Upsert all entries
+    let created = 0;
+    let skipped = 0;
+
+    for (const uid of userIds.map(Number)) {
+      for (const date of dates) {
+        const dateObj = new Date(date);
+        dateObj.setHours(0, 0, 0, 0);
+
+        if (!overwrite) {
+          // Check if already exists — skip if so
+          const existing = await prisma.shiftRoster.findUnique({
+            where: { userId_date: { userId: uid, date: dateObj } },
+          });
+          if (existing) { skipped++; continue; }
+        }
+
+        await prisma.shiftRoster.upsert({
+          where: { userId_date: { userId: uid, date: dateObj } },
+          create: { userId: uid, date: dateObj, shift, createdById: req.user.id },
+          update: { shift, createdById: req.user.id },
+        });
+        created++;
+      }
+    }
+
+    res.json({ msg: "Shifts assigned", created, skipped });
+  } catch (err) {
+    console.error("bulkAssignShift:", err);
+    res.status(500).json({ msg: "Failed to bulk assign shifts" });
+  }
+};
+
+/* ─────────────────────────────────────────
    HELPER — build date range for a month
 ───────────────────────────────────────── */
 function monthRange(monthStr) {

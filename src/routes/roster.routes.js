@@ -4,6 +4,7 @@ import role from "../middlewares/role.middleware.js";
 import {
   getMonthlyRoster,
   assignShift,
+  bulkAssignShift,
   removeShift,
   getMySchedule,
   requestSwap,
@@ -17,6 +18,7 @@ const router = Router();
 // Manager/HR/Admin — monthly roster management
 router.get("/",          auth, role(["ADMIN", "HR", "MANAGER"]), getMonthlyRoster);
 router.post("/",         auth, role(["ADMIN", "HR", "MANAGER"]), assignShift);
+router.post("/bulk",     auth, role(["ADMIN", "HR", "MANAGER"]), bulkAssignShift);
 router.delete("/:id",    auth, role(["ADMIN", "HR", "MANAGER"]), removeShift);
 
 // Employee — own schedule
