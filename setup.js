@@ -134,7 +134,46 @@ async function runSetup() {
     ];
     for (const sql of alterSQL) await prisma.$executeRawUnsafe(sql);
 
-    /* ── 5. Indexes (all idempotent with IF NOT EXISTS) ── */
+    /* ── 5. ShiftRoster + ShiftSwapRequest tables ── */
+    await prisma.$executeRawUnsafe(`
+      DO $$ BEGIN
+        CREATE TYPE "SwapStatus" AS ENUM ('PENDING','ACCEPTED','REJECTED','APPROVED');
+      EXCEPTION WHEN duplicate_object THEN NULL; END $$
+    `);
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "ShiftRoster" (
+        "id"          SERIAL PRIMARY KEY,
+        "userId"      INTEGER NOT NULL,
+        "date"        TIMESTAMP(3) NOT NULL,
+        "shift"       "Shift" NOT NULL,
+        "note"        TEXT,
+        "createdById" INTEGER NOT NULL,
+        "createdAt"   TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT "ShiftRoster_userId_fkey"      FOREIGN KEY ("userId")      REFERENCES "User"("id") ON DELETE CASCADE,
+        CONSTRAINT "ShiftRoster_createdById_fkey" FOREIGN KEY ("createdById") REFERENCES "User"("id"),
+        CONSTRAINT "ShiftRoster_userId_date_key"  UNIQUE ("userId", "date")
+      )
+    `);
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "ShiftSwapRequest" (
+        "id"                SERIAL PRIMARY KEY,
+        "requesterId"       INTEGER NOT NULL,
+        "targetId"          INTEGER NOT NULL,
+        "requesterRosterId" INTEGER NOT NULL,
+        "targetRosterId"    INTEGER NOT NULL,
+        "reason"            TEXT,
+        "status"            "SwapStatus" NOT NULL DEFAULT 'PENDING',
+        "createdAt"         TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "resolvedAt"        TIMESTAMP(3),
+        "resolvedById"      INTEGER,
+        CONSTRAINT "ShiftSwapRequest_requesterId_fkey"       FOREIGN KEY ("requesterId")       REFERENCES "User"("id"),
+        CONSTRAINT "ShiftSwapRequest_targetId_fkey"          FOREIGN KEY ("targetId")          REFERENCES "User"("id"),
+        CONSTRAINT "ShiftSwapRequest_requesterRosterId_fkey" FOREIGN KEY ("requesterRosterId") REFERENCES "ShiftRoster"("id"),
+        CONSTRAINT "ShiftSwapRequest_targetRosterId_fkey"    FOREIGN KEY ("targetRosterId")    REFERENCES "ShiftRoster"("id")
+      )
+    `);
+
+    /* ── 6. Indexes (all idempotent with IF NOT EXISTS) ── */
     const indexes = [
       // QC
       `CREATE INDEX IF NOT EXISTS "QCSession_managerId_idx"          ON "QCSession"("managerId")`,
@@ -161,6 +200,14 @@ async function runSetup() {
       `CREATE INDEX IF NOT EXISTS "ShiftAttendance_analystId_idx"    ON "ShiftAttendance"("analystId")`,
       `CREATE INDEX IF NOT EXISTS "Payroll_userId_idx"               ON "Payroll"("userId")`,
       `CREATE INDEX IF NOT EXISTS "Notification_userId_read_idx"     ON "Notification"("userId", "isRead")`,
+      // ShiftRoster
+      `CREATE INDEX IF NOT EXISTS "ShiftRoster_date_idx"             ON "ShiftRoster"("date")`,
+      `CREATE INDEX IF NOT EXISTS "ShiftRoster_userId_idx"           ON "ShiftRoster"("userId")`,
+      `CREATE INDEX IF NOT EXISTS "ShiftRoster_shift_idx"            ON "ShiftRoster"("shift")`,
+      // ShiftSwapRequest
+      `CREATE INDEX IF NOT EXISTS "ShiftSwapRequest_requesterId_idx" ON "ShiftSwapRequest"("requesterId")`,
+      `CREATE INDEX IF NOT EXISTS "ShiftSwapRequest_targetId_idx"    ON "ShiftSwapRequest"("targetId")`,
+      `CREATE INDEX IF NOT EXISTS "ShiftSwapRequest_status_idx"      ON "ShiftSwapRequest"("status")`,
     ];
     for (const sql of indexes) await prisma.$executeRawUnsafe(sql);
 

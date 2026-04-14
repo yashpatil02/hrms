@@ -74,6 +74,12 @@ model User {
 
   // Management audit
   managementAudits    ManagementAudit[]    @relation("AuditActor")
+
+  // Shift roster
+  shiftRosters        ShiftRoster[]        @relation("UserRoster")
+  createdRosters      ShiftRoster[]        @relation("RosterCreator")
+  swapRequestsSent    ShiftSwapRequest[]   @relation("SwapRequester")
+  swapRequestsReceived ShiftSwapRequest[]  @relation("SwapTarget")
 }
 
 // ── MANAGEMENT AUDIT TRAIL ──
@@ -544,4 +550,57 @@ enum QCDisputeStatus {
   PENDING
   APPROVED
   REJECTED
+}
+
+// ── SHIFT ROSTER ──
+
+enum SwapStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  APPROVED
+}
+
+model ShiftRoster {
+  id          Int      @id @default(autoincrement())
+  userId      Int
+  date        DateTime
+  shift       Shift
+  note        String?
+  createdById Int
+  createdAt   DateTime @default(now())
+
+  user        User     @relation("UserRoster",    fields: [userId],      references: [id], onDelete: Cascade)
+  createdBy   User     @relation("RosterCreator", fields: [createdById], references: [id])
+
+  swapAsRequester ShiftSwapRequest[] @relation("RequesterRoster")
+  swapAsTarget    ShiftSwapRequest[] @relation("TargetRoster")
+
+  @@unique([userId, date])
+  @@index([date])
+  @@index([userId])
+  @@index([shift])
+}
+
+model ShiftSwapRequest {
+  id                Int        @id @default(autoincrement())
+  requesterId       Int
+  targetId          Int
+  requesterRosterId Int
+  targetRosterId    Int
+  reason            String?
+  status            SwapStatus @default(PENDING)
+  createdAt         DateTime   @default(now())
+  resolvedAt        DateTime?
+  resolvedById      Int?
+
+  requester       User        @relation("SwapRequester",   fields: [requesterId],       references: [id])
+  target          User        @relation("SwapTarget",      fields: [targetId],          references: [id])
+  requesterRoster ShiftRoster @relation("RequesterRoster", fields: [requesterRosterId], references: [id])
+  targetRoster    ShiftRoster @relation("TargetRoster",    fields: [targetRosterId],    references: [id])
+
+  @@index([requesterId])
+  @@index([targetId])
+  @@index([status])
+  @@index([createdAt])
 }

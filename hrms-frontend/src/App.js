@@ -46,6 +46,8 @@ import MyErrors from "./pages/employee/MyErrors";
 import ManagementAudit from "./pages/admin/ManagementAudit";
 import EmployeeDirectory from "./pages/admin/EmployeeDirectory";
 import EmployeeProfileView from "./pages/admin/EmployeeProfileView";
+import ShiftRoster from "./pages/admin/ShiftRoster";
+import MySchedule from "./pages/employee/MySchedule";
 
 function App() {
   return (
@@ -387,6 +389,18 @@ function App() {
         <Route
           path="/admin/employees/:id"
           element={<ManagerRoute><EmployeeProfileView /></ManagerRoute>}
+        />
+
+        {/* ===========================
+            SHIFT ROSTER
+        =========================== */}
+        <Route
+          path="/admin/roster"
+          element={<ManagerRoute><ShiftRoster /></ManagerRoute>}
+        />
+        <Route
+          path="/my-schedule"
+          element={<ProtectedRoute><MySchedule /></ProtectedRoute>}
         />
 
         {/* ===========================

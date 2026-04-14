@@ -7,6 +7,7 @@ import {
   FaSearch, FaTimes, FaChevronDown, FaChevronRight, FaCalendarCheck,
   FaShieldAlt, FaUserTie, FaCog, FaMoneyBillWave, FaMoneyCheckAlt,
   FaUserCircle, FaGlobe, FaPollH, FaBullseye, FaExclamationCircle, FaClipboardCheck,
+  FaRegCalendarAlt,
 } from "react-icons/fa";
 
 /* ============================================================
@@ -135,6 +136,22 @@ const FULL_MENU = [
       { name: "Team Targets",  path: "/admin/targets",     icon: <FaBullseye /> },
       { name: "QC Entry",      path: "/admin/qc/entry",    icon: <FaClipboardCheck /> },
       { name: "QC Reports",    path: "/admin/qc/errors",   icon: <FaExclamationCircle /> },
+    ],
+  },
+  {
+    id: "roster-admin",
+    section: "SHIFT ROSTER",
+    roles: ["ADMIN", "HR", "MANAGER"],
+    items: [
+      { name: "Shift Roster", path: "/admin/roster", icon: <FaRegCalendarAlt /> },
+    ],
+  },
+  {
+    id: "roster-employee",
+    section: "SHIFT ROSTER",
+    roles: ["EMPLOYEE"],
+    items: [
+      { name: "My Schedule", path: "/my-schedule", icon: <FaRegCalendarAlt /> },
     ],
   },
   {

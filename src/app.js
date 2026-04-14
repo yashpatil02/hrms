@@ -22,6 +22,7 @@ import analyticsRoutes from "./routes/analytics.routes.js";
 import targetRoutes from "./routes/target.routes.js";
 import qcRoutes from "./routes/qc.routes.js";
 import auditRoutes from "./routes/audit.routes.js";
+import rosterRoutes from "./routes/roster.routes.js";
 
 const app = express();
 
@@ -130,6 +131,9 @@ app.use("/api/qc", qcRoutes);
 
 // 📋 MANAGEMENT AUDIT TRAIL
 app.use("/api/audit", auditRoutes);
+
+// 📅 SHIFT ROSTER
+app.use("/api/roster", rosterRoutes);
 
 /* ================================
    HEALTH CHECK (for keep-alive ping)
