@@ -77,19 +77,33 @@ export const updateMyProfile = async (req, res) => {
     if (bankIFSC !== undefined)       extData.bankIFSC       = bankIFSC || null;
     if (bankHolder !== undefined)     extData.bankHolder     = bankHolder || null;
 
-    const allData = { ...baseData, ...extData };
     const safeSelect = {
       id: true, name: true, email: true, role: true,
       phone: true, department: true, designation: true,
       joinDate: true, avatar: true, weeklyOff: true,
     };
 
+    // Update base fields via Prisma ORM (columns always exist)
     let user;
-    try {
-      user = await prisma.user.update({ where: { id: req.user.id }, data: allData, select: safeSelect });
-    } catch {
-      // Extended columns may not exist yet — fall back to base fields only
+    if (Object.keys(baseData).length > 0) {
       user = await prisma.user.update({ where: { id: req.user.id }, data: baseData, select: safeSelect });
+    } else {
+      user = await prisma.user.findUnique({ where: { id: req.user.id }, select: safeSelect });
+    }
+
+    // Update extended fields via raw SQL — bypasses Prisma schema validation entirely
+    if (Object.keys(extData).length > 0) {
+      try {
+        const entries = Object.entries(extData);
+        const setParts = entries.map(([k], i) => `"${k}" = $${i + 1}`).join(", ");
+        const vals = [...entries.map(([, v]) => v), req.user.id];
+        await prisma.$executeRawUnsafe(
+          `UPDATE "User" SET ${setParts} WHERE "id" = $${vals.length}`,
+          ...vals
+        );
+      } catch (e) {
+        console.warn("updateMyProfile: extended fields skipped (columns may not exist yet):", e.message);
+      }
     }
 
     res.json({ message: "Profile updated", user });

@@ -414,27 +414,12 @@ export const updateEmployeeDetails = async (req, res) => {
     if (bankIFSC !== undefined)       extData.bankIFSC       = bankIFSC || null;
     if (bankHolder !== undefined)     extData.bankHolder     = bankHolder || null;
 
-    const allData = { ...baseData, ...extData };
-    if (Object.keys(allData).length === 0)
+    if (Object.keys(baseData).length === 0 && Object.keys(extData).length === 0)
       return res.status(400).json({ msg: "No fields to update" });
 
+    // Update base fields via Prisma ORM (always safe — columns always exist)
     let updated;
-
-    // Try updating everything in one shot first
-    try {
-      updated = await prisma.user.update({
-        where: { id },
-        data: allData,
-        select: { id: true, name: true, email: true, role: true, department: true,
-                  designation: true, phone: true, joinDate: true, weeklyOff: true,
-                  weekoffBalance: true, avatar: true, createdAt: true },
-      });
-    } catch (updateErr) {
-      // If it fails (likely missing columns), fall back to base fields only
-      console.warn("updateEmployeeDetails full update failed, retrying with base fields:", updateErr.message);
-      if (Object.keys(baseData).length === 0)
-        throw updateErr; // nothing safe to update, re-throw
-
+    if (Object.keys(baseData).length > 0) {
       updated = await prisma.user.update({
         where: { id },
         data: baseData,
@@ -442,6 +427,29 @@ export const updateEmployeeDetails = async (req, res) => {
                   designation: true, phone: true, joinDate: true, weeklyOff: true,
                   weekoffBalance: true, avatar: true, createdAt: true },
       });
+    } else {
+      updated = await prisma.user.findUnique({
+        where: { id },
+        select: { id: true, name: true, email: true, role: true, department: true,
+                  designation: true, phone: true, joinDate: true, weeklyOff: true,
+                  weekoffBalance: true, avatar: true, createdAt: true },
+      });
+    }
+
+    // Update extended fields via raw SQL — bypasses Prisma schema validation entirely
+    // so this never 500s even if columns don't exist yet in DB
+    if (Object.keys(extData).length > 0) {
+      try {
+        const entries = Object.entries(extData);
+        const setParts = entries.map(([k], i) => `"${k}" = $${i + 1}`).join(", ");
+        const vals = [...entries.map(([, v]) => v), id];
+        await prisma.$executeRawUnsafe(
+          `UPDATE "User" SET ${setParts} WHERE "id" = $${vals.length}`,
+          ...vals
+        );
+      } catch (e) {
+        console.warn("updateEmployeeDetails: extended fields skipped (columns may not exist yet):", e.message);
+      }
     }
 
     logAudit({
