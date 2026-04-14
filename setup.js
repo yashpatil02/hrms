@@ -173,7 +173,25 @@ async function runSetup() {
       )
     `);
 
-    /* ── 6. Indexes (all idempotent with IF NOT EXISTS) ── */
+    /* ── 6. MonthlyShiftSchedule table ── */
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "MonthlyShiftSchedule" (
+        "id"          SERIAL PRIMARY KEY,
+        "userId"      INTEGER NOT NULL,
+        "year"        INTEGER NOT NULL,
+        "month"       INTEGER NOT NULL,
+        "shift"       "Shift" NOT NULL,
+        "note"        TEXT,
+        "createdById" INTEGER NOT NULL,
+        "createdAt"   TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt"   TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT "MonthlyShiftSchedule_userId_fkey"      FOREIGN KEY ("userId")      REFERENCES "User"("id") ON DELETE CASCADE,
+        CONSTRAINT "MonthlyShiftSchedule_createdById_fkey" FOREIGN KEY ("createdById") REFERENCES "User"("id"),
+        CONSTRAINT "MonthlyShiftSchedule_userId_year_month_key" UNIQUE ("userId", "year", "month")
+      )
+    `);
+
+    /* ── 7. Indexes (all idempotent with IF NOT EXISTS) ── */
     const indexes = [
       // QC
       `CREATE INDEX IF NOT EXISTS "QCSession_managerId_idx"          ON "QCSession"("managerId")`,
@@ -208,6 +226,9 @@ async function runSetup() {
       `CREATE INDEX IF NOT EXISTS "ShiftSwapRequest_requesterId_idx" ON "ShiftSwapRequest"("requesterId")`,
       `CREATE INDEX IF NOT EXISTS "ShiftSwapRequest_targetId_idx"    ON "ShiftSwapRequest"("targetId")`,
       `CREATE INDEX IF NOT EXISTS "ShiftSwapRequest_status_idx"      ON "ShiftSwapRequest"("status")`,
+      // MonthlyShiftSchedule
+      `CREATE INDEX IF NOT EXISTS "MonthlyShiftSchedule_year_month_idx" ON "MonthlyShiftSchedule"("year", "month")`,
+      `CREATE INDEX IF NOT EXISTS "MonthlyShiftSchedule_userId_idx"     ON "MonthlyShiftSchedule"("userId")`,
     ];
     for (const sql of indexes) await prisma.$executeRawUnsafe(sql);
 

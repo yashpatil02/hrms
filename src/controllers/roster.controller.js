@@ -382,3 +382,114 @@ export const resolveSwap = async (req, res) => {
     res.status(500).json({ msg: "Failed to resolve swap" });
   }
 };
+
+/* ═══════════════════════════════════════════
+   MONTHLY SHIFT SCHEDULE
+═══════════════════════════════════════════ */
+
+/* ─────────────────────────────────────────
+   GET /api/roster/schedule?year=2026&department=
+   Manager — full year schedule for all employees
+───────────────────────────────────────── */
+export const getAnnualSchedule = async (req, res) => {
+  try {
+    const year = parseInt(req.query.year) || new Date().getFullYear();
+    const { department } = req.query;
+
+    const schedules = await prisma.monthlyShiftSchedule.findMany({
+      where: { year },
+      include: {
+        user: { select: { id: true, name: true, department: true, designation: true, avatar: true } },
+      },
+      orderBy: { month: "asc" },
+    });
+
+    const userWhere = { role: { not: "ADMIN" } };
+    if (department) userWhere.department = department;
+
+    const users = await prisma.user.findMany({
+      where: userWhere,
+      select: { id: true, name: true, department: true, designation: true, avatar: true },
+      orderBy: [{ department: "asc" }, { name: "asc" }],
+    });
+
+    res.json({ schedules, users });
+  } catch (err) {
+    console.error("getAnnualSchedule:", err);
+    res.status(500).json({ msg: "Failed to fetch schedule" });
+  }
+};
+
+/* ─────────────────────────────────────────
+   POST /api/roster/schedule
+   Assign shift to employee(s) for given months
+   Body: { userIds, months, year, shift, note? }
+   months: array of ints [1..12]
+───────────────────────────────────────── */
+export const assignMonthlyShift = async (req, res) => {
+  try {
+    const { userIds, months, year, shift, note } = req.body;
+
+    if (!userIds?.length)  return res.status(400).json({ msg: "userIds required" });
+    if (!months?.length)   return res.status(400).json({ msg: "months required" });
+    if (!year)             return res.status(400).json({ msg: "year required" });
+    if (!VALID_SHIFTS.includes(shift)) return res.status(400).json({ msg: "Valid shift required" });
+
+    let created = 0, updated = 0;
+
+    for (const uid of userIds.map(Number)) {
+      for (const month of months.map(Number)) {
+        await prisma.monthlyShiftSchedule.upsert({
+          where: { userId_year_month: { userId: uid, year: Number(year), month } },
+          create: {
+            userId: uid, year: Number(year), month, shift,
+            note: note || null, createdById: req.user.id,
+          },
+          update: {
+            shift, note: note || null, createdById: req.user.id,
+          },
+        });
+        // Count: check if it existed before is expensive; just call it an upsert
+        created++;
+      }
+    }
+
+    res.json({ msg: "Schedule updated", assigned: created });
+  } catch (err) {
+    console.error("assignMonthlyShift:", err);
+    res.status(500).json({ msg: "Failed to assign shifts" });
+  }
+};
+
+/* ─────────────────────────────────────────
+   DELETE /api/roster/schedule/:id
+───────────────────────────────────────── */
+export const removeMonthlyShift = async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    await prisma.monthlyShiftSchedule.delete({ where: { id } });
+    res.json({ msg: "Removed" });
+  } catch (err) {
+    if (err.code === "P2025") return res.status(404).json({ msg: "Not found" });
+    console.error("removeMonthlyShift:", err);
+    res.status(500).json({ msg: "Failed to remove" });
+  }
+};
+
+/* ─────────────────────────────────────────
+   GET /api/roster/my-schedule?year=2026
+   Employee — own annual schedule
+───────────────────────────────────────── */
+export const getMyAnnualSchedule = async (req, res) => {
+  try {
+    const year = parseInt(req.query.year) || new Date().getFullYear();
+    const schedules = await prisma.monthlyShiftSchedule.findMany({
+      where: { userId: req.user.id, year },
+      orderBy: { month: "asc" },
+    });
+    res.json({ schedules });
+  } catch (err) {
+    console.error("getMyAnnualSchedule:", err);
+    res.status(500).json({ msg: "Failed to fetch schedule" });
+  }
+};

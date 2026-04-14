@@ -75,11 +75,15 @@ model User {
   // Management audit
   managementAudits    ManagementAudit[]    @relation("AuditActor")
 
-  // Shift roster
+  // Shift roster (day-wise)
   shiftRosters        ShiftRoster[]        @relation("UserRoster")
   createdRosters      ShiftRoster[]        @relation("RosterCreator")
   swapRequestsSent    ShiftSwapRequest[]   @relation("SwapRequester")
   swapRequestsReceived ShiftSwapRequest[]  @relation("SwapTarget")
+
+  // Monthly shift schedule
+  monthlyShifts       MonthlyShiftSchedule[] @relation("UserMonthlyShift")
+  createdMonthlyShifts MonthlyShiftSchedule[] @relation("MonthlyShiftCreator")
 }
 
 // ── MANAGEMENT AUDIT TRAIL ──
@@ -603,4 +607,25 @@ model ShiftSwapRequest {
   @@index([targetId])
   @@index([status])
   @@index([createdAt])
+}
+
+// ── MONTHLY SHIFT SCHEDULE ──
+
+model MonthlyShiftSchedule {
+  id          Int      @id @default(autoincrement())
+  userId      Int
+  year        Int
+  month       Int      // 1 = January … 12 = December
+  shift       Shift
+  note        String?
+  createdById Int
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user      User @relation("UserMonthlyShift",    fields: [userId],      references: [id], onDelete: Cascade)
+  createdBy User @relation("MonthlyShiftCreator", fields: [createdById], references: [id])
+
+  @@unique([userId, year, month])
+  @@index([year, month])
+  @@index([userId])
 }

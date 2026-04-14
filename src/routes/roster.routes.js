@@ -11,6 +11,10 @@ import {
   getSwapRequests,
   respondToSwap,
   resolveSwap,
+  getAnnualSchedule,
+  assignMonthlyShift,
+  removeMonthlyShift,
+  getMyAnnualSchedule,
 } from "../controllers/roster.controller.js";
 
 const router = Router();
@@ -23,6 +27,12 @@ router.delete("/:id",    auth, role(["ADMIN", "HR", "MANAGER"]), removeShift);
 
 // Employee — own schedule
 router.get("/my",        auth, getMySchedule);
+
+// Monthly schedule (year-based)
+router.get("/schedule",         auth, role(["ADMIN", "HR", "MANAGER"]), getAnnualSchedule);
+router.post("/schedule",        auth, role(["ADMIN", "HR", "MANAGER"]), assignMonthlyShift);
+router.delete("/schedule/:id",  auth, role(["ADMIN", "HR", "MANAGER"]), removeMonthlyShift);
+router.get("/my-schedule",      auth, getMyAnnualSchedule);
 
 // Swap requests
 router.get("/swap",      auth, getSwapRequests);
