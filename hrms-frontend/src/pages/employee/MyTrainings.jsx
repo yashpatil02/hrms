@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import Layout from "../../components/Layout";
-import api from "../../services/api";
+import api from "../../api/axios";
 
 /* ── helpers ─────────────────────────────────────────────── */
 const STATUS_COLOR = {
