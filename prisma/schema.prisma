@@ -90,6 +90,13 @@ model User {
   candidatesAdded      Candidate[]              @relation("CandidateAddedBy")
   stageChanges         CandidateStageHistory[]  @relation("StageChangedBy")
   interviewFeedbacks   InterviewFeedback[]      @relation("FeedbackInterviewer")
+
+  // LMS
+  trainingsCreated     Training[]               @relation("TrainingCreator")
+  trainingAssignments  TrainingAssignment[]     @relation("AssignedTraining")
+  assignedTrainings    TrainingAssignment[]     @relation("TrainingAssignedBy")
+  quizAttempts         QuizAttempt[]            @relation("QuizAttempts")
+  certificates         TrainingCertificate[]    @relation("UserCertificates")
 }
 
 // ── MANAGEMENT AUDIT TRAIL ──
@@ -748,4 +755,112 @@ model InterviewFeedback {
 
   @@index([candidateId])
   @@index([interviewerId])
+}
+
+// ── LMS (LEARNING MANAGEMENT SYSTEM) ──
+
+enum TrainingStatus {
+  DRAFT
+  PUBLISHED
+}
+
+enum AssignmentStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  EXPIRED
+}
+
+model Training {
+  id          Int            @id @default(autoincrement())
+  title       String
+  description String?
+  category    String?
+  duration    Int            // estimated minutes
+  content     String         // HTML/text course content
+  passingScore Int           @default(70) // quiz passing % (0-100)
+  status      TrainingStatus @default(DRAFT)
+  createdById Int
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  createdBy    User                  @relation("TrainingCreator", fields: [createdById], references: [id])
+  assignments  TrainingAssignment[]
+  questions    QuizQuestion[]
+  certificates TrainingCertificate[]
+
+  @@index([status])
+  @@index([category])
+  @@index([createdById])
+}
+
+model TrainingAssignment {
+  id           Int              @id @default(autoincrement())
+  trainingId   Int
+  userId       Int
+  assignedById Int
+  dueDate      DateTime?
+  status       AssignmentStatus @default(PENDING)
+  progress     Int              @default(0)
+  startedAt    DateTime?
+  completedAt  DateTime?
+  createdAt    DateTime         @default(now())
+
+  training     Training             @relation(fields: [trainingId], references: [id], onDelete: Cascade)
+  user         User                 @relation("AssignedTraining",    fields: [userId],       references: [id])
+  assignedBy   User                 @relation("TrainingAssignedBy",  fields: [assignedById], references: [id])
+  quizAttempts QuizAttempt[]
+  certificate  TrainingCertificate?
+
+  @@unique([trainingId, userId])
+  @@index([userId])
+  @@index([trainingId])
+  @@index([status])
+}
+
+model QuizQuestion {
+  id            Int      @id @default(autoincrement())
+  trainingId    Int
+  question      String
+  options       String   // JSON: ["opt A","opt B","opt C","opt D"]
+  correctAnswer Int      // index 0-3
+  points        Int      @default(1)
+  order         Int      @default(0)
+
+  training Training @relation(fields: [trainingId], references: [id], onDelete: Cascade)
+
+  @@index([trainingId])
+}
+
+model QuizAttempt {
+  id           Int      @id @default(autoincrement())
+  assignmentId Int
+  userId       Int
+  answers      String   // JSON: {"questionId": selectedIndex, ...}
+  score        Int      // percentage 0-100
+  passed       Boolean
+  attemptNo    Int      @default(1)
+  attemptedAt  DateTime @default(now())
+
+  assignment TrainingAssignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  user       User               @relation("QuizAttempts", fields: [userId], references: [id])
+
+  @@index([assignmentId])
+  @@index([userId])
+}
+
+model TrainingCertificate {
+  id            Int      @id @default(autoincrement())
+  assignmentId  Int      @unique
+  userId        Int
+  trainingId    Int
+  certificateNo String   @unique
+  issuedAt      DateTime @default(now())
+
+  assignment TrainingAssignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  user       User               @relation("UserCertificates", fields: [userId],     references: [id])
+  training   Training           @relation(fields: [trainingId], references: [id])
+
+  @@index([userId])
+  @@index([trainingId])
 }

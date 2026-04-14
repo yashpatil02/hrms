@@ -49,6 +49,8 @@ import EmployeeProfileView from "./pages/admin/EmployeeProfileView";
 import ShiftRoster from "./pages/admin/ShiftRoster";
 import MySchedule from "./pages/employee/MySchedule";
 import ATS from "./pages/admin/ATS";
+import LMS from "./pages/admin/LMS";
+import MyTrainings from "./pages/employee/MyTrainings";
 
 function App() {
   return (
@@ -410,6 +412,18 @@ function App() {
         <Route
           path="/my-schedule"
           element={<ProtectedRoute><MySchedule /></ProtectedRoute>}
+        />
+
+        {/* ===========================
+            LMS
+        =========================== */}
+        <Route
+          path="/admin/lms"
+          element={<ManagerRoute><LMS /></ManagerRoute>}
+        />
+        <Route
+          path="/my-trainings"
+          element={<ProtectedRoute><MyTrainings /></ProtectedRoute>}
         />
 
         {/* ===========================

@@ -269,7 +269,88 @@ async function runSetup() {
       )
     `);
 
-    /* ── 8. Indexes (all idempotent with IF NOT EXISTS) ── */
+    /* ── 8. LMS Tables ── */
+    const lmsEnums = [
+      `DO $$ BEGIN CREATE TYPE "TrainingStatus"  AS ENUM ('DRAFT','PUBLISHED');                              EXCEPTION WHEN duplicate_object THEN NULL; END $$`,
+      `DO $$ BEGIN CREATE TYPE "AssignmentStatus" AS ENUM ('PENDING','IN_PROGRESS','COMPLETED','EXPIRED');   EXCEPTION WHEN duplicate_object THEN NULL; END $$`,
+    ];
+    for (const sql of lmsEnums) await prisma.$executeRawUnsafe(sql);
+
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "Training" (
+        "id"           SERIAL PRIMARY KEY,
+        "title"        TEXT NOT NULL,
+        "description"  TEXT,
+        "category"     TEXT,
+        "duration"     INTEGER NOT NULL DEFAULT 0,
+        "content"      TEXT NOT NULL DEFAULT '',
+        "passingScore" INTEGER NOT NULL DEFAULT 70,
+        "status"       "TrainingStatus" NOT NULL DEFAULT 'DRAFT',
+        "createdById"  INTEGER NOT NULL,
+        "createdAt"    TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt"    TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY ("createdById") REFERENCES "User"("id")
+      )
+    `);
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "TrainingAssignment" (
+        "id"           SERIAL PRIMARY KEY,
+        "trainingId"   INTEGER NOT NULL,
+        "userId"       INTEGER NOT NULL,
+        "assignedById" INTEGER NOT NULL,
+        "dueDate"      TIMESTAMP(3),
+        "status"       "AssignmentStatus" NOT NULL DEFAULT 'PENDING',
+        "progress"     INTEGER NOT NULL DEFAULT 0,
+        "startedAt"    TIMESTAMP(3),
+        "completedAt"  TIMESTAMP(3),
+        "createdAt"    TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT "TrainingAssignment_trainingId_userId_key" UNIQUE ("trainingId","userId"),
+        FOREIGN KEY ("trainingId")   REFERENCES "Training"("id") ON DELETE CASCADE,
+        FOREIGN KEY ("userId")       REFERENCES "User"("id"),
+        FOREIGN KEY ("assignedById") REFERENCES "User"("id")
+      )
+    `);
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "QuizQuestion" (
+        "id"            SERIAL PRIMARY KEY,
+        "trainingId"    INTEGER NOT NULL,
+        "question"      TEXT NOT NULL,
+        "options"       TEXT NOT NULL,
+        "correctAnswer" INTEGER NOT NULL,
+        "points"        INTEGER NOT NULL DEFAULT 1,
+        "order"         INTEGER NOT NULL DEFAULT 0,
+        FOREIGN KEY ("trainingId") REFERENCES "Training"("id") ON DELETE CASCADE
+      )
+    `);
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "QuizAttempt" (
+        "id"           SERIAL PRIMARY KEY,
+        "assignmentId" INTEGER NOT NULL,
+        "userId"       INTEGER NOT NULL,
+        "answers"      TEXT NOT NULL,
+        "score"        INTEGER NOT NULL,
+        "passed"       BOOLEAN NOT NULL,
+        "attemptNo"    INTEGER NOT NULL DEFAULT 1,
+        "attemptedAt"  TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY ("assignmentId") REFERENCES "TrainingAssignment"("id") ON DELETE CASCADE,
+        FOREIGN KEY ("userId")       REFERENCES "User"("id")
+      )
+    `);
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "TrainingCertificate" (
+        "id"            SERIAL PRIMARY KEY,
+        "assignmentId"  INTEGER NOT NULL UNIQUE,
+        "userId"        INTEGER NOT NULL,
+        "trainingId"    INTEGER NOT NULL,
+        "certificateNo" TEXT NOT NULL UNIQUE,
+        "issuedAt"      TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY ("assignmentId") REFERENCES "TrainingAssignment"("id") ON DELETE CASCADE,
+        FOREIGN KEY ("userId")       REFERENCES "User"("id"),
+        FOREIGN KEY ("trainingId")   REFERENCES "Training"("id")
+      )
+    `);
+
+    /* ── 9. Indexes (all idempotent with IF NOT EXISTS) ── */
     const indexes = [
       // QC
       `CREATE INDEX IF NOT EXISTS "QCSession_managerId_idx"          ON "QCSession"("managerId")`,
@@ -314,6 +395,13 @@ async function runSetup() {
       `CREATE INDEX IF NOT EXISTS "Candidate_stage_idx"          ON "Candidate"("stage")`,
       `CREATE INDEX IF NOT EXISTS "CandidateStageHistory_candidateId_idx" ON "CandidateStageHistory"("candidateId")`,
       `CREATE INDEX IF NOT EXISTS "InterviewFeedback_candidateId_idx"     ON "InterviewFeedback"("candidateId")`,
+      // LMS
+      `CREATE INDEX IF NOT EXISTS "Training_status_idx"                   ON "Training"("status")`,
+      `CREATE INDEX IF NOT EXISTS "TrainingAssignment_userId_idx"         ON "TrainingAssignment"("userId")`,
+      `CREATE INDEX IF NOT EXISTS "TrainingAssignment_status_idx"         ON "TrainingAssignment"("status")`,
+      `CREATE INDEX IF NOT EXISTS "QuizQuestion_trainingId_idx"           ON "QuizQuestion"("trainingId")`,
+      `CREATE INDEX IF NOT EXISTS "QuizAttempt_assignmentId_idx"          ON "QuizAttempt"("assignmentId")`,
+      `CREATE INDEX IF NOT EXISTS "TrainingCertificate_userId_idx"        ON "TrainingCertificate"("userId")`,
     ];
     for (const sql of indexes) await prisma.$executeRawUnsafe(sql);
 

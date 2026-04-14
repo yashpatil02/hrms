@@ -24,6 +24,7 @@ import qcRoutes from "./routes/qc.routes.js";
 import auditRoutes from "./routes/audit.routes.js";
 import rosterRoutes from "./routes/roster.routes.js";
 import atsRoutes from "./routes/ats.routes.js";
+import lmsRoutes from "./routes/lms.routes.js";
 
 const app = express();
 
@@ -138,6 +139,9 @@ app.use("/api/roster", rosterRoutes);
 
 // 🧑‍💼 ATS (APPLICANT TRACKING)
 app.use("/api/ats", atsRoutes);
+
+// 📚 LMS (LEARNING MANAGEMENT)
+app.use("/api/lms", lmsRoutes);
 
 /* ================================
    HEALTH CHECK (for keep-alive ping)

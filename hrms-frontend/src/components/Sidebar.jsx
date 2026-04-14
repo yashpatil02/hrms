@@ -163,6 +163,22 @@ const FULL_MENU = [
     ],
   },
   {
+    id: "lms-admin",
+    section: "LEARNING & DEVELOPMENT",
+    roles: ["ADMIN", "HR", "MANAGER"],
+    items: [
+      { name: "Training Programs", path: "/admin/lms", icon: <FaClipboardCheck /> },
+    ],
+  },
+  {
+    id: "lms-employee",
+    section: "LEARNING & DEVELOPMENT",
+    roles: ["EMPLOYEE"],
+    items: [
+      { name: "My Trainings", path: "/my-trainings", icon: <FaClipboardCheck /> },
+    ],
+  },
+  {
     id: "productivity-employee",
     section: "PRODUCTIVITY",
     roles: ["EMPLOYEE"],
