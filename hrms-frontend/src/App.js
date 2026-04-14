@@ -48,6 +48,7 @@ import EmployeeDirectory from "./pages/admin/EmployeeDirectory";
 import EmployeeProfileView from "./pages/admin/EmployeeProfileView";
 import ShiftRoster from "./pages/admin/ShiftRoster";
 import MySchedule from "./pages/employee/MySchedule";
+import ATS from "./pages/admin/ATS";
 
 function App() {
   return (
@@ -389,6 +390,14 @@ function App() {
         <Route
           path="/admin/employees/:id"
           element={<ManagerRoute><EmployeeProfileView /></ManagerRoute>}
+        />
+
+        {/* ===========================
+            ATS
+        =========================== */}
+        <Route
+          path="/admin/ats"
+          element={<ManagerRoute><ATS /></ManagerRoute>}
         />
 
         {/* ===========================

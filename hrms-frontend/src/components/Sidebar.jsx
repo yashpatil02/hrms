@@ -139,6 +139,14 @@ const FULL_MENU = [
     ],
   },
   {
+    id: "ats",
+    section: "RECRUITMENT",
+    roles: ["ADMIN", "HR", "MANAGER"],
+    items: [
+      { name: "ATS / Hiring", path: "/admin/ats", icon: <FaUserTie /> },
+    ],
+  },
+  {
     id: "roster-admin",
     section: "SHIFT ROSTER",
     roles: ["ADMIN", "HR", "MANAGER"],

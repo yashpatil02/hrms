@@ -191,7 +191,85 @@ async function runSetup() {
       )
     `);
 
-    /* ── 7. Indexes (all idempotent with IF NOT EXISTS) ── */
+    /* ── 7. ATS Tables ── */
+    const atsEnums = [
+      `DO $$ BEGIN CREATE TYPE "JobStatus"             AS ENUM ('DRAFT','OPEN','CLOSED');               EXCEPTION WHEN duplicate_object THEN NULL; END $$`,
+      `DO $$ BEGIN CREATE TYPE "JobType"               AS ENUM ('FULL_TIME','PART_TIME','CONTRACT','INTERNSHIP'); EXCEPTION WHEN duplicate_object THEN NULL; END $$`,
+      `DO $$ BEGIN CREATE TYPE "CandidateStage"        AS ENUM ('APPLIED','SCREENING','INTERVIEW','OFFER','HIRED','REJECTED'); EXCEPTION WHEN duplicate_object THEN NULL; END $$`,
+      `DO $$ BEGIN CREATE TYPE "FeedbackRecommendation" AS ENUM ('HIRE','REJECT','HOLD');               EXCEPTION WHEN duplicate_object THEN NULL; END $$`,
+    ];
+    for (const sql of atsEnums) await prisma.$executeRawUnsafe(sql);
+
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "JobPosting" (
+        "id"           SERIAL PRIMARY KEY,
+        "title"        TEXT NOT NULL,
+        "department"   TEXT,
+        "description"  TEXT NOT NULL,
+        "requirements" TEXT,
+        "location"     TEXT,
+        "type"         "JobType"   NOT NULL DEFAULT 'FULL_TIME',
+        "status"       "JobStatus" NOT NULL DEFAULT 'OPEN',
+        "salaryMin"    DOUBLE PRECISION,
+        "salaryMax"    DOUBLE PRECISION,
+        "closingDate"  TIMESTAMP(3),
+        "createdById"  INTEGER NOT NULL,
+        "createdAt"    TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt"    TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY ("createdById") REFERENCES "User"("id")
+      )
+    `);
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "Candidate" (
+        "id"           SERIAL PRIMARY KEY,
+        "name"         TEXT NOT NULL,
+        "email"        TEXT NOT NULL,
+        "phone"        TEXT,
+        "resumeUrl"    TEXT,
+        "jobId"        INTEGER NOT NULL,
+        "stage"        "CandidateStage" NOT NULL DEFAULT 'APPLIED',
+        "notes"        TEXT,
+        "offerSalary"  DOUBLE PRECISION,
+        "joiningDate"  TIMESTAMP(3),
+        "offerContent" TEXT,
+        "addedById"    INTEGER NOT NULL,
+        "createdAt"    TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt"    TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY ("jobId")     REFERENCES "JobPosting"("id") ON DELETE CASCADE,
+        FOREIGN KEY ("addedById") REFERENCES "User"("id")
+      )
+    `);
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "CandidateStageHistory" (
+        "id"          SERIAL PRIMARY KEY,
+        "candidateId" INTEGER NOT NULL,
+        "fromStage"   "CandidateStage",
+        "toStage"     "CandidateStage" NOT NULL,
+        "notes"       TEXT,
+        "changedById" INTEGER NOT NULL,
+        "changedAt"   TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY ("candidateId") REFERENCES "Candidate"("id") ON DELETE CASCADE,
+        FOREIGN KEY ("changedById") REFERENCES "User"("id")
+      )
+    `);
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "InterviewFeedback" (
+        "id"             SERIAL PRIMARY KEY,
+        "candidateId"    INTEGER NOT NULL,
+        "interviewerId"  INTEGER NOT NULL,
+        "round"          TEXT NOT NULL,
+        "rating"         INTEGER NOT NULL,
+        "strengths"      TEXT,
+        "weaknesses"     TEXT,
+        "recommendation" "FeedbackRecommendation" NOT NULL,
+        "notes"          TEXT,
+        "createdAt"      TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY ("candidateId")   REFERENCES "Candidate"("id") ON DELETE CASCADE,
+        FOREIGN KEY ("interviewerId") REFERENCES "User"("id")
+      )
+    `);
+
+    /* ── 8. Indexes (all idempotent with IF NOT EXISTS) ── */
     const indexes = [
       // QC
       `CREATE INDEX IF NOT EXISTS "QCSession_managerId_idx"          ON "QCSession"("managerId")`,
@@ -229,6 +307,13 @@ async function runSetup() {
       // MonthlyShiftSchedule
       `CREATE INDEX IF NOT EXISTS "MonthlyShiftSchedule_year_month_idx" ON "MonthlyShiftSchedule"("year", "month")`,
       `CREATE INDEX IF NOT EXISTS "MonthlyShiftSchedule_userId_idx"     ON "MonthlyShiftSchedule"("userId")`,
+      // ATS
+      `CREATE INDEX IF NOT EXISTS "JobPosting_status_idx"        ON "JobPosting"("status")`,
+      `CREATE INDEX IF NOT EXISTS "JobPosting_department_idx"    ON "JobPosting"("department")`,
+      `CREATE INDEX IF NOT EXISTS "Candidate_jobId_idx"          ON "Candidate"("jobId")`,
+      `CREATE INDEX IF NOT EXISTS "Candidate_stage_idx"          ON "Candidate"("stage")`,
+      `CREATE INDEX IF NOT EXISTS "CandidateStageHistory_candidateId_idx" ON "CandidateStageHistory"("candidateId")`,
+      `CREATE INDEX IF NOT EXISTS "InterviewFeedback_candidateId_idx"     ON "InterviewFeedback"("candidateId")`,
     ];
     for (const sql of indexes) await prisma.$executeRawUnsafe(sql);
 

@@ -84,6 +84,12 @@ model User {
   // Monthly shift schedule
   monthlyShifts       MonthlyShiftSchedule[] @relation("UserMonthlyShift")
   createdMonthlyShifts MonthlyShiftSchedule[] @relation("MonthlyShiftCreator")
+
+  // ATS
+  jobsCreated          JobPosting[]             @relation("JobCreator")
+  candidatesAdded      Candidate[]              @relation("CandidateAddedBy")
+  stageChanges         CandidateStageHistory[]  @relation("StageChangedBy")
+  interviewFeedbacks   InterviewFeedback[]      @relation("FeedbackInterviewer")
 }
 
 // ── MANAGEMENT AUDIT TRAIL ──
@@ -628,4 +634,118 @@ model MonthlyShiftSchedule {
   @@unique([userId, year, month])
   @@index([year, month])
   @@index([userId])
+}
+
+// ── ATS (APPLICANT TRACKING SYSTEM) ──
+
+enum JobStatus {
+  DRAFT
+  OPEN
+  CLOSED
+}
+
+enum JobType {
+  FULL_TIME
+  PART_TIME
+  CONTRACT
+  INTERNSHIP
+}
+
+enum CandidateStage {
+  APPLIED
+  SCREENING
+  INTERVIEW
+  OFFER
+  HIRED
+  REJECTED
+}
+
+enum FeedbackRecommendation {
+  HIRE
+  REJECT
+  HOLD
+}
+
+model JobPosting {
+  id           Int        @id @default(autoincrement())
+  title        String
+  department   String?
+  description  String
+  requirements String?
+  location     String?
+  type         JobType    @default(FULL_TIME)
+  status       JobStatus  @default(OPEN)
+  salaryMin    Float?
+  salaryMax    Float?
+  closingDate  DateTime?
+  createdById  Int
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  createdBy  User        @relation("JobCreator", fields: [createdById], references: [id])
+  candidates Candidate[]
+
+  @@index([status])
+  @@index([department])
+  @@index([createdById])
+}
+
+model Candidate {
+  id           Int            @id @default(autoincrement())
+  name         String
+  email        String
+  phone        String?
+  resumeUrl    String?
+  jobId        Int
+  stage        CandidateStage @default(APPLIED)
+  notes        String?
+  offerSalary  Float?
+  joiningDate  DateTime?
+  offerContent String?
+  addedById    Int
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  job          JobPosting              @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  addedBy      User                   @relation("CandidateAddedBy", fields: [addedById], references: [id])
+  feedbacks    InterviewFeedback[]
+  stageHistory CandidateStageHistory[]
+
+  @@index([jobId])
+  @@index([stage])
+  @@index([email])
+}
+
+model CandidateStageHistory {
+  id          Int             @id @default(autoincrement())
+  candidateId Int
+  fromStage   CandidateStage?
+  toStage     CandidateStage
+  notes       String?
+  changedById Int
+  changedAt   DateTime        @default(now())
+
+  candidate Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  changedBy User      @relation("StageChangedBy", fields: [changedById], references: [id])
+
+  @@index([candidateId])
+}
+
+model InterviewFeedback {
+  id             Int                    @id @default(autoincrement())
+  candidateId    Int
+  interviewerId  Int
+  round          String
+  rating         Int
+  strengths      String?
+  weaknesses     String?
+  recommendation FeedbackRecommendation
+  notes          String?
+  createdAt      DateTime               @default(now())
+
+  candidate   Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  interviewer User      @relation("FeedbackInterviewer", fields: [interviewerId], references: [id])
+
+  @@index([candidateId])
+  @@index([interviewerId])
 }
